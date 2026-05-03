@@ -1,16 +1,102 @@
-# React + Vite
+# 🤖 AI Tutor System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
+The AI Tutor System is a web-based platform designed to help users improve their problem-solving skills through intelligent evaluation, feedback, and personalized recommendations.
 
-Currently, two official plugins are available:
+The system allows users to solve coding problems, receive automated feedback, track their skill progress, and view AI-generated solutions.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Features
+- 🧩 Problem solving interface
+- 📊 Code evaluation and scoring system
+- 💬 Automated feedback generation
+- 💡 Hint generation system
+- 🎯 Personalized recommendation system
+- 📈 Skill tracking and analysis
+- 🤖 AI solution explanation
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## Project Structure
+AI-Tutor-system/
+│
+├── database/ # SQL schema and test queries
+│
+├── public/ # Static assets for frontend
+│
+├── src/ # React source code
+│ ├── App.jsx
+│ ├── main.jsx
+│ └── components...
+│
+├── index.html # Entry HTML file
+├── package.json # Project dependencies
+├── vite.config.js # Vite configuration
+└── README.md
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+---
+
+## Database
+The database is designed to support the full system workflow, including:
+
+- Users
+- Problems
+- Skills
+- Test Cases
+- Submissions
+- Evaluation Results
+- Feedback
+- Hints
+- Recommendations
+- AI Solutions
+
+---
+
+## How to Run the Frontend
+
+1. Clone the repository:
+```bash
+git clone https://github.com/YOUR_USERNAME/AI-Tutor-system.git
+
+2. Navigate to the project:
+cd AI-Tutor-system
+
+3. install dependencies
+npm install
+
+4. run the development server
+npm run dev
+
+## system architecture
+
+User → Submission
+        ↓
+Evaluation System
+        ↓
+Feedback System
+        ↓
+Skill Tracking System
+        ↓
+Recommendation System
+        ↓
+AI Solution System
+
+## Technologies Used
+
+Frontend: React (Vite)
+Backend: (to be implemented)
+Database: MySQL
+Version Control: Git & GitHub
+Project Management: Jira (Scrum)
+
+## Project Status
+
+✅ Frontend prototype completed
+✅ Database schema implemented and tested
+⏳ Backend development in progress
+⏳ AI systems implementation ongoing
+
+## Contributors
+Mohamed Darwish - Karim Koaik - Yehya Mazloum - Mohammad Ismail Hashem
