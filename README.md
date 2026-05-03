@@ -19,6 +19,7 @@ The system allows users to solve coding problems, receive automated feedback, tr
 ---
 
 ## Project Structure
+---
 AI-Tutor-system/
 │
 ├── database/ # SQL schema and test queries
@@ -34,10 +35,9 @@ AI-Tutor-system/
 ├── package.json # Project dependencies
 ├── vite.config.js # Vite configuration
 └── README.md
-
-
 ---
 
+---
 ## Database
 The database is designed to support the full system workflow, including:
 
@@ -57,7 +57,6 @@ The database is designed to support the full system workflow, including:
 ## How to Run the Frontend
 
 1. Clone the repository:
-```bash
 git clone https://github.com/YOUR_USERNAME/AI-Tutor-system.git
 
 2. Navigate to the project:
