@@ -89,7 +89,7 @@ Recommendation System
   ↓
 AI Solution Explanation System
 ```
-\
+
 ## Technologies Used
 
 Frontend: React (Vite)
