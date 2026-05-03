@@ -19,7 +19,7 @@ The system allows users to solve coding problems, receive automated feedback, tr
 ---
 
 ## Project Structure
----
+```text
 AI-Tutor-system/
 │
 ├── database/ # SQL schema and test queries
@@ -35,7 +35,7 @@ AI-Tutor-system/
 ├── package.json # Project dependencies
 ├── vite.config.js # Vite configuration
 └── README.md
----
+```
 
 ---
 ## Database
@@ -86,7 +86,8 @@ Skill Tracking System
 Recommendation System
   ↓
 AI Solution Explanation System
-
+```
+\
 ## Technologies Used
 
 Frontend: React (Vite)
