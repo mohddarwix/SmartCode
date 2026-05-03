@@ -68,19 +68,24 @@ npm install
 4. run the development server
 npm run dev
 
-## system architecture
+## 🧠 System Architecture
 
-User → Submission
-        ↓
+The system follows a modular architecture where each component is responsible for a specific part of the learning process:
+
+```text
+User
+  ↓
+Code Submission
+  ↓
 Evaluation System
-        ↓
+  ↓
 Feedback System
-        ↓
+  ↓
 Skill Tracking System
-        ↓
+  ↓
 Recommendation System
-        ↓
-AI Solution System
+  ↓
+AI Solution Explanation System
 
 ## Technologies Used
 
