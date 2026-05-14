@@ -1,0 +1,47 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# build output
+dist
+dist-ssr
+*.local
+
+# env
+.env
+.env.local
+.env.*.local
+
+# backend
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.env
+
+# editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# database dump (contains real beta-tester emails + bcrypt hashes;
+# the schema + seed files are the public source of truth and produce the
+# same content deterministically)
+database/dump.sql
+
+# Word lock files
+~$*.docx
+~$*.doc
+
+# Stale intermediate report renderings (keep REPORT.md as source-of-truth
+# and the latest REPORT_v3.docx; intermediate versions are not interesting)
+REPORT_v2.docx
