@@ -42,6 +42,9 @@ database/dump.sql
 ~$*.docx
 ~$*.doc
 
-# Stale intermediate report renderings (keep REPORT.md as source-of-truth
-# and the latest REPORT_v3.docx; intermediate versions are not interesting)
-REPORT_v2.docx
+# Old report sources (the canonical report is now SmartCode_Final_Report.pdf;
+# the markdown source, Word renderings, and mermaid diagram sources are no
+# longer the authoritative version and should not be re-added)
+REPORT.md
+REPORT*.docx
+docs/*.mmd

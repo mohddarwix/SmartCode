@@ -81,7 +81,7 @@ The project is the **final submission** for LAU **COE 416 — Software Engineeri
                                                   └─────────────┘
 ```
 
-A fancier Mermaid version of this diagram lives at [`docs/system-architecture.mmd`](docs/system-architecture.mmd) — paste it into <https://mermaid.live> to render a PNG/SVG.
+The same diagram (and the full database ERD, all use-case models, the activity diagram, and screenshots of every screen) appears in the final report — see [`SmartCode_Final_Report.pdf`](SmartCode_Final_Report.pdf).
 
 ---
 
@@ -103,11 +103,11 @@ A fancier Mermaid version of this diagram lives at [`docs/system-architecture.mm
 
 ```
 SmartCode/
-├── README.md                  ← you are here
-├── REPORT.md                  ← full project report (sections 1-7, ~730 lines)
-├── REPORT.docx · REPORT_v3.docx
+├── README.md                       ← you are here
+├── SmartCode_Final_Report.pdf      ← 29-page IEEE-format final report
+├── SmartCode_Presentation.pdf      ← 12-slide demo deck
 │
-├── src/                       ← React frontend
+├── src/                            ← React frontend
 │   ├── api/                       fetch wrappers (auto-attach JWT)
 │   ├── components/                Nav, Layout, CheatsheetDrawer, ProtectedRoute
 │   ├── context/AuthContext.jsx    real auth state, /me validation
@@ -245,18 +245,18 @@ The `deploy/` folder contains idempotent PowerShell scripts that drive a Windows
 4. Point one or more DNS A records at the Elastic IP (DNS-only / gray cloud on Cloudflare).
 5. Run `.\deploy\enable-https.ps1 -Domain 'your-domain.com,alt-domain.com' -Email you@example.com` — installs Caddy, moves uvicorn to loopback, opens 443, fetches the Let's Encrypt cert. The same Caddyfile can serve multiple SAN names from one site block.
 
-See [`REPORT.md` §3.10](REPORT.md) for the full deployment topology and AWS security-group settings.
+See [`SmartCode_Final_Report.pdf`](SmartCode_Final_Report.pdf) (Deployment section) for the full deployment topology and AWS security-group settings.
 
 ---
 
 ## Testing
 
-Both layers of testing are documented in detail in [`REPORT.md` §4](REPORT.md):
+Both layers of testing are documented in detail in [`SmartCode_Final_Report.pdf`](SmartCode_Final_Report.pdf) §4:
 
 - **§4.1 Automated unit tests** for the scoring math, AST cheater backstop, sandbox canonicalization, and diagnostic post-processing.
-- **§4.2 End-to-end manual scenarios** against the live deployment (registration, diagnostic, problem attempt with hints, coincidence-solution rejection, watch-AI-solve, admin content management, LLM-offline degradation).
-- **§4.3 Performance measurement** with `wrk` + interactive workflow timing.
-- **§4.4 LLM-offline robustness matrix** documenting every fallback path.
+- **§4.2 End-to-end manual scenarios** against the live deployment (registration, diagnostic, problem attempt with hints, coincidence-solution rejection, interactive AI tutor, admin content management, LLM-offline degradation).
+- **§4.3 Performance measurement** with `wrk` + interactive workflow timing (Table 5: per-endpoint median latency).
+- **§4.4 LLM-offline robustness matrix** (Table 6: primary vs fallback behavior for every LLM-backed feature).
 - **§4.5 Alpha + Beta Testing** with concrete findings (A1–A6 internal, B1–B6 external) and the fix shipped for each.
 
 ---
