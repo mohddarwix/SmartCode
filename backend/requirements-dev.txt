@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# Testing
+httpx            # required by FastAPI's TestClient (starlette 0.20+)
+pytest

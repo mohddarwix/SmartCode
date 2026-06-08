@@ -61,7 +61,8 @@ python -m venv .venv
 # macOS / Linux
 source .venv/bin/activate
 
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # includes httpx + pytest for tests
+# or for production only: pip install -r requirements.txt
 ```
 
 Copy the environment template and fill in your values:
