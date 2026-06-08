@@ -33,10 +33,19 @@ yarn-error.log*
 pnpm-debug.log*
 *.log
 
+# TLS certificates and private keys — should never be committed
+*.pem
+*.key
+
 # database dump (contains real beta-tester emails + bcrypt hashes;
 # the schema + seed files are the public source of truth and produce the
 # same content deterministically)
 database/dump.sql
+
+# Internal / planning files — not part of the public project
+.claude/
+CODEBASE_EXPLAINED.md
+PUBLISHING_PLAN.md
 
 # Word lock files
 ~$*.docx
