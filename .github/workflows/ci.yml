@@ -47,11 +47,13 @@ jobs:
 
       - name: Seed database
         run: |
-          mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system < database/schema.sql
-          mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system < database/seed_problems.sql
-          mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system < database/seed_problems_extra.sql
-          mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system < database/seed_cheatsheets.sql
-          mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system < database/seed_users.sql
+          # tr -d '\r' strips Windows CRLF that MySQL on Linux misparses.
+          # schema.sql creates its own database so no db name on that call.
+          tr -d '\r' < database/schema.sql | mysql -h 127.0.0.1 -P 3307 -u root -ptestpass
+          tr -d '\r' < database/seed_problems.sql | mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system
+          tr -d '\r' < database/seed_problems_extra.sql | mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system
+          tr -d '\r' < database/seed_cheatsheets.sql | mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system
+          tr -d '\r' < database/seed_users.sql | mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system
 
       - name: Run pytest
         env:

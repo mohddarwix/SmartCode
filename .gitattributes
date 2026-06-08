@@ -3,6 +3,20 @@
 # files were committed from.
 * text=auto eol=lf
 
+# Explicitly mark these as text so auto-detection cannot misclassify
+# UTF-8 or long-line files as binary and skip normalization.
+*.sql  text eol=lf
+*.py   text eol=lf
+*.js   text eol=lf
+*.jsx  text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.md   text eol=lf
+*.sh   text eol=lf
+
 # Treat these explicitly as binary to avoid corruption.
 *.png  binary
 *.jpg  binary
