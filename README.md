@@ -1,5 +1,8 @@
 # SmartCode
 
+[![CI](https://github.com/mohddarwix/SmartCode/actions/workflows/ci.yml/badge.svg)](https://github.com/mohddarwix/SmartCode/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > Adaptive Python programming tutor with deterministic code grading and step-by-step AI teaching.
 
 **Live deployment:** <https://smartcodelau.com/> &nbsp;·&nbsp; mirror: <https://lau-ai-tutor.duckdns.org/>
@@ -81,7 +84,7 @@ The project is the **final submission** for LAU **COE 416 — Software Engineeri
                                                   └─────────────┘
 ```
 
-The same diagram (and the full database ERD, all use-case models, the activity diagram, and screenshots of every screen) appears in the final report — see [`SmartCode_Final_Report.pdf`](SmartCode_Final_Report.pdf).
+The same diagram (and the full database ERD, all use-case models, and the activity diagram) are documented in the final report — available on request from the authors.
 
 ---
 
@@ -104,8 +107,12 @@ The same diagram (and the full database ERD, all use-case models, the activity d
 ```
 SmartCode/
 ├── README.md                       ← you are here
-├── SmartCode_Final_Report.pdf      ← 29-page IEEE-format final report
-├── SmartCode_Presentation.pdf      ← 12-slide demo deck
+├── LICENSE
+├── CONTRIBUTING.md
+├── DEVELOPMENT.md
+├── SECURITY.md
+├── docker-compose.yml
+├── Dockerfile.frontend
 │
 ├── src/                            ← React frontend
 │   ├── api/                       fetch wrappers (auto-attach JWT)
@@ -218,20 +225,20 @@ cp .env.example .env
 #   JWT_SECRET=<random 48 bytes base64>
 #   GOOGLE_API_KEY=<your-gemini-key>     (optional)
 
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
 ```
 
-API docs auto-served at <http://127.0.0.1:8000/docs>.
+API docs auto-served at <http://127.0.0.1:8001/docs>.
 
 ### 4. Frontend
 
 ```bash
 # from the project root (not backend/)
-npm install --legacy-peer-deps        # --legacy-peer-deps for React 19 peer deps
+npm ci --legacy-peer-deps             # --legacy-peer-deps for React 19 peer deps
 npm run dev
 ```
 
-Vite's dev server hosts the SPA at <http://localhost:5173> and proxies `/api/*` to `http://127.0.0.1:8000` (see [`vite.config.js`](vite.config.js)), so no CORS dance is needed in development.
+Vite's dev server hosts the SPA at <http://localhost:5173> and proxies `/api/*` to `http://127.0.0.1:8001` (see [`vite.config.js`](vite.config.js)), so no CORS dance is needed in development.
 
 ---
 
@@ -245,19 +252,19 @@ The `deploy/` folder contains idempotent PowerShell scripts that drive a Windows
 4. Point one or more DNS A records at the Elastic IP (DNS-only / gray cloud on Cloudflare).
 5. Run `.\deploy\enable-https.ps1 -Domain 'your-domain.com,alt-domain.com' -Email you@example.com` — installs Caddy, moves uvicorn to loopback, opens 443, fetches the Let's Encrypt cert. The same Caddyfile can serve multiple SAN names from one site block.
 
-See [`SmartCode_Final_Report.pdf`](SmartCode_Final_Report.pdf) (Deployment section) for the full deployment topology and AWS security-group settings.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for additional configuration details.
 
 ---
 
 ## Testing
 
-Both layers of testing are documented in detail in [`SmartCode_Final_Report.pdf`](SmartCode_Final_Report.pdf) §4:
+Testing covers five areas:
 
-- **§4.1 Automated unit tests** for the scoring math, AST cheater backstop, sandbox canonicalization, and diagnostic post-processing.
-- **§4.2 End-to-end manual scenarios** against the live deployment (registration, diagnostic, problem attempt with hints, coincidence-solution rejection, interactive AI tutor, admin content management, LLM-offline degradation).
-- **§4.3 Performance measurement** with `wrk` + interactive workflow timing (Table 5: per-endpoint median latency).
-- **§4.4 LLM-offline robustness matrix** (Table 6: primary vs fallback behavior for every LLM-backed feature).
-- **§4.5 Alpha + Beta Testing** with concrete findings (A1–A6 internal, B1–B6 external) and the fix shipped for each.
+- **Automated unit tests** for the scoring math, AST cheater backstop, sandbox canonicalization, and diagnostic post-processing (`pytest backend/tests/`).
+- **End-to-end manual scenarios** against the live deployment (registration, diagnostic, problem attempt with hints, coincidence-solution rejection, interactive AI tutor, admin content management, LLM-offline degradation).
+- **Performance measurement** with `wrk` + interactive workflow timing across all API endpoints.
+- **LLM-offline robustness** — every LLM-backed feature has a deterministic heuristic fallback; the full matrix was verified manually.
+- **Alpha + Beta Testing** with concrete findings (A1–A6 internal, B1–B6 external) and the fix shipped for each.
 
 ---
 
@@ -274,4 +281,4 @@ Group 11, Section 12 — LAU COE 416 (Spring 2026), Dr. Helen Saad
 
 ## License
 
-This is academic coursework. The code is provided as-is for review by the course staff and for portfolio purposes; please do not redistribute or use in commercial work without contacting the authors.
+MIT — see [LICENSE](LICENSE) for the full text.
