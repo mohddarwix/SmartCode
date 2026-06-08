@@ -50,7 +50,7 @@ export function AuthProvider({ children }) {
       return data.user;
     } catch (err) {
       if (err instanceof ApiError) throw err;
-      throw new Error(err?.message || 'Registration failed.');
+      throw new Error(err?.message || 'Registration failed.', { cause: err });
     }
   };
 
@@ -85,6 +85,7 @@ export function AuthProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used inside an AuthProvider');

@@ -48,7 +48,6 @@ jobs:
       - name: Seed database
         run: |
           mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system < database/schema.sql
-          mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system < database/seed.sql
           mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system < database/seed_problems.sql
           mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system < database/seed_problems_extra.sql
           mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system < database/seed_cheatsheets.sql

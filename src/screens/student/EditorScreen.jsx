@@ -650,9 +650,8 @@ function EmptyTab({ title, message }) {
   );
 }
 
-function SolutionsTab({ problem, reviewData }) {
+function SolutionsTab({ problem }) {
   // Interactive step-by-step AI tutor (chat-style).
-  // `reviewData` is accepted for symmetry with other tabs but not used here.
   const [history, setHistory] = useState([]);          // [{role: 'tutor'|'student', content, step_index?}, ...]
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -870,48 +869,8 @@ function TutorMarkdown({ text }) {
   );
 }
 
-/**
- * Render the streamed markdown text:
- *   - Lines starting with "## " or "### " become headings
- *   - Triple-backtick fences become dark code blocks
- *   - Everything else is rendered as paragraphs
- *
- * Tolerant of incomplete input — an unclosed code fence at the end is rendered
- * as a still-streaming code block.
- */
-function StreamedTranscript({ text, streaming }) {
-  const blocks = parseStreamedMarkdown(text);
-  return (
-    <div className="space-y-3 text-sm text-gray-800">
-      {blocks.map((b, i) => {
-        if (b.kind === 'h2') {
-          return <h2 key={i} className="text-base font-bold text-indigo-700 mt-4">{b.text}</h2>;
-        }
-        if (b.kind === 'h3') {
-          return <h3 key={i} className="text-sm font-semibold text-gray-800 mt-3">{b.text}</h3>;
-        }
-        if (b.kind === 'code') {
-          return (
-            <pre
-              key={i}
-              className="bg-[#1e1e1e] text-gray-100 text-xs font-mono p-3 rounded overflow-x-auto whitespace-pre"
-            >
-              {b.text}
-              {b.unclosed && streaming && <span className="text-indigo-400">_</span>}
-            </pre>
-          );
-        }
-        return (
-          <p key={i} className="whitespace-pre-line leading-relaxed">{b.text}</p>
-        );
-      })}
-    </div>
-  );
-}
-
 function parseStreamedMarkdown(text) {
   const blocks = [];
-  let i = 0;
   let buf = '';
   const flushPara = () => {
     if (buf.trim()) blocks.push({ kind: 'p', text: buf.trim() });

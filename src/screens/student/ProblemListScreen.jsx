@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Code, Play, ChevronRight, BookOpen, CheckCircle2, Circle, CircleDashed, AlertCircle } from 'lucide-react';
+import { Code, ChevronRight, BookOpen, CheckCircle2, Circle, CircleDashed, AlertCircle } from 'lucide-react';
 import { problemsApi } from '../../api/problems';
 import { recommendationsApi } from '../../api/recommendations';
 
