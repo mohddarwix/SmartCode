@@ -52,7 +52,10 @@ router = APIRouter(prefix="/diagnostic", tags=["diagnostic"])
 
 # --------------------------- POST /api/diagnostic ---------------------------
 
-@router.post("", response_model=DiagnosticResultOut, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "", response_model=DiagnosticResultOut, status_code=status.HTTP_201_CREATED
+)
 def submit_diagnostic(
     payload: DiagnosticSubmit,
     user: User = Depends(get_current_user),
@@ -149,7 +152,9 @@ def submit_diagnostic(
             )
         )
         if us is None:
-            db.add(UserSkill(user_id=user.user_id, skill_id=skill.skill_id, score=score))
+            db.add(
+                UserSkill(user_id=user.user_id, skill_id=skill.skill_id, score=score)
+            )
         else:
             us.score = score
 
@@ -164,10 +169,13 @@ def submit_diagnostic(
     db.refresh(user)
     db.refresh(attempt)
 
-    return _build_result_out(db, user, attempt, graded.weak_skills, next_suggestions, graded=graded)
+    return _build_result_out(
+        db, user, attempt, graded.weak_skills, next_suggestions, graded=graded
+    )
 
 
 # --------------------------- GET /api/diagnostic/last -----------------------
+
 
 @router.get("/last", response_model=DiagnosticResultOut)
 def last_diagnostic(
@@ -188,21 +196,27 @@ def last_diagnostic(
         )
     # Recompute weak skills from the persisted skill scores
     skill_scores = _user_skills(db, user.user_id)
-    weak_skills = [
-        s.name for s in sorted(skill_scores, key=lambda r: r.score)[:3]
-    ]
+    weak_skills = [s.name for s in sorted(skill_scores, key=lambda r: r.score)[:3]]
     return _build_result_out(db, user, attempt, weak_skills, [])
 
 
 # --------------------------- helpers ---------------------------------------
 
+
 def _user_skills(db: Session, user_id: int) -> list[UserSkillOut]:
     rows = db.execute(
         select(Skill.skill_id, Skill.name, UserSkill.score)
-        .join(UserSkill, (UserSkill.skill_id == Skill.skill_id) & (UserSkill.user_id == user_id), isouter=True)
+        .join(
+            UserSkill,
+            (UserSkill.skill_id == Skill.skill_id) & (UserSkill.user_id == user_id),
+            isouter=True,
+        )
         .order_by(Skill.display_order)
     ).all()
-    return [UserSkillOut(skill_id=sid, name=name, score=score or 0) for sid, name, score in rows]
+    return [
+        UserSkillOut(skill_id=sid, name=name, score=score or 0)
+        for sid, name, score in rows
+    ]
 
 
 def _make_next_recommendation(
@@ -268,13 +282,15 @@ def _make_next_recommendation(
                 algo_version=f"{rec_set.source}-v2-3picks",
             )
         )
-        out.append(NextProblemSuggestion(
-            problem_id=problem.problem_id,
-            title=problem.title,
-            difficulty=problem.difficulty,
-            reason_md=pick.reason_md,
-            estimated_minutes=problem.estimated_minutes,
-        ))
+        out.append(
+            NextProblemSuggestion(
+                problem_id=problem.problem_id,
+                title=problem.title,
+                difficulty=problem.difficulty,
+                reason_md=pick.reason_md,
+                estimated_minutes=problem.estimated_minutes,
+            )
+        )
     return out
 
 
@@ -300,27 +316,37 @@ def _build_result_out(
 
     def item_type(question_md: str | None) -> str:
         # We didn't persist the type column; infer cheaply from the question.
-        if question_md and ("```" in question_md or "function" in question_md.lower() or "write" in question_md.lower()):
+        if question_md and (
+            "```" in question_md
+            or "function" in question_md.lower()
+            or "write" in question_md.lower()
+        ):
             return "coding"
         return "mcq"
 
     items_out: list[DiagnosticItemResultOut] = []
     for it in items:
         g = graded_by_index.get(it.order_index)
-        items_out.append(DiagnosticItemResultOut(
-            order_index=it.order_index,
-            skill_name=skill_by_id[it.skill_id].name if it.skill_id in skill_by_id else None,
-            tested_skills=list((g.per_skill_scores or {}).keys()) if g else [],
-            per_skill_scores=dict(g.per_skill_scores) if g else {},
-            type=item_type(it.question_md),
-            question=it.question_md or "",
-            user_answer=it.user_answer or "",
-            correct_answer=it.correct_answer,
-            is_correct=it.is_correct,
-            score=it.score,
-            explanation_md=it.explanation_md or "",
-            answer_kind=g.answer_kind if g else "code",
-        ))
+        items_out.append(
+            DiagnosticItemResultOut(
+                order_index=it.order_index,
+                skill_name=(
+                    skill_by_id[it.skill_id].name
+                    if it.skill_id in skill_by_id
+                    else None
+                ),
+                tested_skills=list((g.per_skill_scores or {}).keys()) if g else [],
+                per_skill_scores=dict(g.per_skill_scores) if g else {},
+                type=item_type(it.question_md),
+                question=it.question_md or "",
+                user_answer=it.user_answer or "",
+                correct_answer=it.correct_answer,
+                is_correct=it.is_correct,
+                score=it.score,
+                explanation_md=it.explanation_md or "",
+                answer_kind=g.answer_kind if g else "code",
+            )
+        )
 
     return DiagnosticResultOut(
         diagnostic_attempt_id=attempt.diagnostic_attempt_id,

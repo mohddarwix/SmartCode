@@ -18,10 +18,18 @@ def my_skills(
     """Current user's score per skill, in display order. Includes skills with no row yet (score=0)."""
     rows = db.execute(
         select(Skill.skill_id, Skill.name, UserSkill.score)
-        .join(UserSkill, (UserSkill.skill_id == Skill.skill_id) & (UserSkill.user_id == user.user_id), isouter=True)
+        .join(
+            UserSkill,
+            (UserSkill.skill_id == Skill.skill_id)
+            & (UserSkill.user_id == user.user_id),
+            isouter=True,
+        )
         .order_by(Skill.display_order)
     ).all()
-    return [UserSkillOut(skill_id=sid, name=name, score=score or 0) for sid, name, score in rows]
+    return [
+        UserSkillOut(skill_id=sid, name=name, score=score or 0)
+        for sid, name, score in rows
+    ]
 
 
 @router.get("/skills/history", response_model=list[SkillHistoryPoint])
@@ -32,7 +40,10 @@ def my_skill_history(
 ) -> list[SkillHistoryPoint]:
     rows = db.execute(
         select(UserSkillHistory.day, UserSkillHistory.score)
-        .where(UserSkillHistory.user_id == user.user_id, UserSkillHistory.skill_id == skill_id)
+        .where(
+            UserSkillHistory.user_id == user.user_id,
+            UserSkillHistory.skill_id == skill_id,
+        )
         .order_by(UserSkillHistory.day)
     ).all()
     return [SkillHistoryPoint(day=d, score=s) for d, s in rows]

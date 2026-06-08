@@ -32,7 +32,7 @@ log = logging.getLogger("ai_tutor.llm.evaluator")
 
 
 class TestCaseSnapshot(BaseModel):
-    case_index: int                 # 1-based, matches what the LLM should reference
+    case_index: int  # 1-based, matches what the LLM should reference
     name: str | None
     visibility: Literal["sample", "public", "hidden"]
     input_blob: str
@@ -40,12 +40,12 @@ class TestCaseSnapshot(BaseModel):
 
 
 class EvaluationInput(BaseModel):
-    problem_slug: str               # routes the sandbox to the right method/adapters
+    problem_slug: str  # routes the sandbox to the right method/adapters
     problem_title: str
     difficulty: Literal["easy", "medium", "hard"]
     statement_md: str
     constraints_md: str | None
-    cases: list[TestCaseSnapshot]   # everything the LLM gets to see for this evaluation
+    cases: list[TestCaseSnapshot]  # everything the LLM gets to see for this evaluation
     language: str
     code: str
 
@@ -64,9 +64,9 @@ class TestCaseResult(BaseModel):
     visibility: Literal["sample", "public", "hidden"]
     input_blob: str
     expected_blob: str
-    predicted_output: str           # what the LLM thinks the code returns
+    predicted_output: str  # what the LLM thinks the code returns
     passed: bool
-    explanation_md: str             # populated mainly when passed=False
+    explanation_md: str  # populated mainly when passed=False
     severity: Severity | None = None  # only meaningful when passed=False
 
 
@@ -79,7 +79,9 @@ class EvaluationResult(BaseModel):
     cases: list[TestCaseResult]
     passed_count: int
     total_count: int
-    status: Literal["accepted", "wrong_answer", "runtime_error", "time_limit", "compile_error"]
+    status: Literal[
+        "accepted", "wrong_answer", "runtime_error", "time_limit", "compile_error"
+    ]
     score: int
     score_correctness: int
     score_edge_cases: int
@@ -219,6 +221,7 @@ def evaluate_submission(inp: EvaluationInput) -> EvaluationResult:
 
 # ---- Sandbox helpers ----
 
+
 def _run_sandbox(inp: EvaluationInput) -> dict[int, "object"]:
     """Run all cases through the Python subprocess sandbox.
 
@@ -227,17 +230,25 @@ def _run_sandbox(inp: EvaluationInput) -> dict[int, "object"]:
     problem with no method/param mapping yet).
     """
     if inp.problem_slug not in _SANDBOX_CONFIGS:
-        log.info("No sandbox config for slug %r — falling back to LLM-only", inp.problem_slug)
+        log.info(
+            "No sandbox config for slug %r — falling back to LLM-only", inp.problem_slug
+        )
         return {}
     payload_cases = [
-        {"case_index": c.case_index, "input_blob": c.input_blob, "expected_blob": c.expected_blob}
+        {
+            "case_index": c.case_index,
+            "input_blob": c.input_blob,
+            "expected_blob": c.expected_blob,
+        }
         for c in inp.cases
     ]
     rows = _sandbox_run(slug=inp.problem_slug, user_code=inp.code, cases=payload_cases)
     return {r.case_index: r for r in rows}
 
 
-def _overlay_sandbox(result: EvaluationResult, sandbox: dict[int, "object"]) -> EvaluationResult:
+def _overlay_sandbox(
+    result: EvaluationResult, sandbox: dict[int, "object"]
+) -> EvaluationResult:
     """Override LLM verdicts with sandbox truth, then recompute aggregates."""
     new_cases: list[TestCaseResult] = []
     any_runtime_error = False
@@ -251,12 +262,20 @@ def _overlay_sandbox(result: EvaluationResult, sandbox: dict[int, "object"]) -> 
         predicted = sb.actual_output or (sb.error or "(no output)")
         if sb.passed:
             # Real interpreter says it works. Drop any LLM-fabricated explanation.
-            new_cases.append(c.model_copy(update={
-                "passed": True,
-                "predicted_output": predicted,
-                "explanation_md": "" if c.explanation_md and not c.passed else c.explanation_md,
-                "severity": None,
-            }))
+            new_cases.append(
+                c.model_copy(
+                    update={
+                        "passed": True,
+                        "predicted_output": predicted,
+                        "explanation_md": (
+                            ""
+                            if c.explanation_md and not c.passed
+                            else c.explanation_md
+                        ),
+                        "severity": None,
+                    }
+                )
+            )
         else:
             # Real failure. Keep the LLM's explanation if it has one, else build
             # a tight one from the sandbox error.
@@ -272,18 +291,25 @@ def _overlay_sandbox(result: EvaluationResult, sandbox: dict[int, "object"]) -> 
                     f"Got `{predicted}`, expected `{sb.expected_output}`. "
                     "Trace your algorithm on this input to find the divergence."
                 )
-            severity = c.severity or _infer_severity_from_visibility(c.visibility, sb.error)
-            new_cases.append(c.model_copy(update={
-                "passed": False,
-                "predicted_output": predicted,
-                "explanation_md": exp,
-                "severity": severity,
-            }))
+            severity = c.severity or _infer_severity_from_visibility(
+                c.visibility, sb.error
+            )
+            new_cases.append(
+                c.model_copy(
+                    update={
+                        "passed": False,
+                        "predicted_output": predicted,
+                        "explanation_md": exp,
+                        "severity": severity,
+                    }
+                )
+            )
 
     passed = sum(1 for c in new_cases if c.passed)
     total = len(new_cases) or result.total_count
     new_status = (
-        "accepted" if passed == total
+        "accepted"
+        if passed == total
         else ("runtime_error" if any_runtime_error else "wrong_answer")
     )
     new_correctness = round(100 * passed / total) if total else 0
@@ -296,18 +322,23 @@ def _overlay_sandbox(result: EvaluationResult, sandbox: dict[int, "object"]) -> 
 
     # Aggregate sandbox metrics across cases: sum runtime, peak across memory.
     runtime_ms = sum(int(getattr(sb, "elapsed_ms", 0) or 0) for sb in sandbox.values())
-    memory_kb = max((int(getattr(sb, "peak_memory_kb", 0) or 0) for sb in sandbox.values()), default=0)
+    memory_kb = max(
+        (int(getattr(sb, "peak_memory_kb", 0) or 0) for sb in sandbox.values()),
+        default=0,
+    )
 
-    return result.model_copy(update={
-        "cases": new_cases,
-        "passed_count": passed,
-        "total_count": total,
-        "status": new_status,
-        "score": max(0, min(100, new_score)),
-        "score_correctness": new_correctness,
-        "runtime_ms": runtime_ms or result.runtime_ms,
-        "memory_kb": memory_kb or result.memory_kb,
-    })
+    return result.model_copy(
+        update={
+            "cases": new_cases,
+            "passed_count": passed,
+            "total_count": total,
+            "status": new_status,
+            "score": max(0, min(100, new_score)),
+            "score_correctness": new_correctness,
+            "runtime_ms": runtime_ms or result.runtime_ms,
+            "memory_kb": memory_kb or result.memory_kb,
+        }
+    )
 
 
 def _infer_severity_from_visibility(visibility: str, error: str | None) -> Severity:
@@ -331,38 +362,41 @@ def _evaluate_from_sandbox_only(
         if sb is None:
             # No sandbox config — record honest "not evaluated" and let
             # the LLM-offline heuristic shape the rest.
-            cases.append(TestCaseResult(
-                case_index=c.case_index,
-                name=c.name,
-                visibility=c.visibility,
-                input_blob=c.input_blob,
-                expected_blob=c.expected_blob,
-                predicted_output="(not evaluated)",
-                passed=False,
-                explanation_md="No sandbox config for this problem and the LLM grader is offline.",
-                severity="moderate",
-            ))
+            cases.append(
+                TestCaseResult(
+                    case_index=c.case_index,
+                    name=c.name,
+                    visibility=c.visibility,
+                    input_blob=c.input_blob,
+                    expected_blob=c.expected_blob,
+                    predicted_output="(not evaluated)",
+                    passed=False,
+                    explanation_md="No sandbox config for this problem and the LLM grader is offline.",
+                    severity="moderate",
+                )
+            )
             continue
         predicted = sb.actual_output or (sb.error or "(no output)")
         explanation = ""
         severity: Severity | None = None
         if not sb.passed:
             severity = _infer_severity_from_visibility(c.visibility, sb.error)
-            explanation = (
-                f"Got `{predicted}`, expected `{sb.expected_output}`."
-                + (f" ({sb.error})" if sb.error else "")
+            explanation = f"Got `{predicted}`, expected `{sb.expected_output}`." + (
+                f" ({sb.error})" if sb.error else ""
             )
-        cases.append(TestCaseResult(
-            case_index=c.case_index,
-            name=c.name,
-            visibility=c.visibility,
-            input_blob=c.input_blob,
-            expected_blob=c.expected_blob,
-            predicted_output=predicted,
-            passed=sb.passed,
-            explanation_md=explanation,
-            severity=severity,
-        ))
+        cases.append(
+            TestCaseResult(
+                case_index=c.case_index,
+                name=c.name,
+                visibility=c.visibility,
+                input_blob=c.input_blob,
+                expected_blob=c.expected_blob,
+                predicted_output=predicted,
+                passed=sb.passed,
+                explanation_md=explanation,
+                severity=severity,
+            )
+        )
 
     passed = sum(1 for c in cases if c.passed)
     total = len(cases) or 1
@@ -373,8 +407,8 @@ def _evaluate_from_sandbox_only(
             kind="good" if passed == total else "warn",
             text=(
                 f"{passed}/{total} test cases passed in the Python sandbox."
-                if not sandbox else
-                f"{passed}/{total} test cases passed in the Python sandbox."
+                if not sandbox
+                else f"{passed}/{total} test cases passed in the Python sandbox."
             ),
         ),
         FeedbackBullet(
@@ -387,7 +421,7 @@ def _evaluate_from_sandbox_only(
         passed_count=passed,
         total_count=total,
         status=status,
-        score=correctness,             # without LLM axes, just correctness
+        score=correctness,  # without LLM axes, just correctness
         score_correctness=correctness,
         score_edge_cases=correctness,  # placeholder — no LLM signal
         score_code_quality=70,
@@ -399,8 +433,15 @@ def _evaluate_from_sandbox_only(
         ),
         bullets=bullets,
         source="heuristic",
-        runtime_ms=sum(int(getattr(sb, "elapsed_ms", 0) or 0) for sb in sandbox.values()) or 50,
-        memory_kb=max((int(getattr(sb, "peak_memory_kb", 0) or 0) for sb in sandbox.values()), default=0) or 10000,
+        runtime_ms=sum(
+            int(getattr(sb, "elapsed_ms", 0) or 0) for sb in sandbox.values()
+        )
+        or 50,
+        memory_kb=max(
+            (int(getattr(sb, "peak_memory_kb", 0) or 0) for sb in sandbox.values()),
+            default=0,
+        )
+        or 10000,
     )
 
 
@@ -436,7 +477,11 @@ def _detect_lucky_coincidence(code: str) -> str | None:
             return (
                 f"the function body is just `return {ret.value!r}` regardless of input"
             )
-        if isinstance(ret, (ast.List, ast.Dict, ast.Set, ast.Tuple)) and not ret.elts and not getattr(ret, "keys", None):
+        if (
+            isinstance(ret, (ast.List, ast.Dict, ast.Set, ast.Tuple))
+            and not ret.elts
+            and not getattr(ret, "keys", None)
+        ):
             return "the function body is just `return <empty container>` regardless of input"
 
     # Pattern 2: function body never references its parameters/args.
@@ -513,6 +558,7 @@ def run_submission(inp: EvaluationInput) -> EvaluationResult:
 
 # --------------------------- LLM path ---------------------------
 
+
 def _evaluate_with_llm(
     inp: EvaluationInput, sandbox: dict[int, "object"] | None = None
 ) -> EvaluationResult:
@@ -588,7 +634,13 @@ def _evaluate_with_llm(
 
     passed_count = sum(1 for c in cases_out if c.passed)
     status = raw.get("status")
-    if status not in ("accepted", "wrong_answer", "runtime_error", "time_limit", "compile_error"):
+    if status not in (
+        "accepted",
+        "wrong_answer",
+        "runtime_error",
+        "time_limit",
+        "compile_error",
+    ):
         status = "accepted" if passed_count == total else "wrong_answer"
     # Enforce internal consistency: any failure means not "accepted".
     if status == "accepted" and passed_count != total:
@@ -604,7 +656,9 @@ def _evaluate_with_llm(
         score_edge_cases=_clamp_int(raw.get("score_edge_cases"), 0, 100),
         score_code_quality=_clamp_int(raw.get("score_code_quality"), 0, 100),
         score_time_complexity=_clamp_int(raw.get("score_time_complexity"), 0, 100),
-        inferred_big_o=str(raw.get("inferred_big_o")) if raw.get("inferred_big_o") else None,
+        inferred_big_o=(
+            str(raw.get("inferred_big_o")) if raw.get("inferred_big_o") else None
+        ),
         summary_md=str(raw.get("summary_md") or "").strip() or "Solution evaluated.",
         bullets=bullets,
         source="llm",
@@ -640,9 +694,7 @@ def _build_user_prompt(inp: EvaluationInput, sandbox: dict[int, "object"]) -> st
             verdict = "PASSED" if sb.passed else "FAILED"
             actual = sb.actual_output or "(none)"
             err = f" — runtime: {sb.error}" if sb.error else ""
-            parts.append(
-                f"**Sandbox: {verdict}**. Actual output: `{actual}`{err}"
-            )
+            parts.append(f"**Sandbox: {verdict}**. Actual output: `{actual}`{err}")
 
     parts.append(
         f"\n## Student submission ({inp.language})\n```{inp.language}\n{inp.code}\n```\n"
@@ -731,7 +783,9 @@ def _evaluate_with_heuristic(inp: EvaluationInput) -> EvaluationResult:
 
     if looks_like_stub:
         return EvaluationResult(
-            cases=case_rows("The function body is empty or only contains placeholder comments."),
+            cases=case_rows(
+                "The function body is empty or only contains placeholder comments."
+            ),
             passed_count=0,
             total_count=total,
             status="wrong_answer",
@@ -743,8 +797,13 @@ def _evaluate_with_heuristic(inp: EvaluationInput) -> EvaluationResult:
             inferred_big_o=None,
             summary_md="Your submission looks like the starter template, not a real solution.",
             bullets=[
-                FeedbackBullet(kind="warn", text="The function body is empty or only contains placeholder comments."),
-                FeedbackBullet(kind="warn", text="Implement the function and resubmit."),
+                FeedbackBullet(
+                    kind="warn",
+                    text="The function body is empty or only contains placeholder comments.",
+                ),
+                FeedbackBullet(
+                    kind="warn", text="Implement the function and resubmit."
+                ),
             ],
             source="heuristic",
         )
@@ -776,11 +835,19 @@ def _evaluate_with_heuristic(inp: EvaluationInput) -> EvaluationResult:
             ),
             FeedbackBullet(
                 kind="good" if has_return else "warn",
-                text="Your code does have a return statement." if has_return else "I didn't find a `return` in your code — make sure your function actually returns a result.",
+                text=(
+                    "Your code does have a return statement."
+                    if has_return
+                    else "I didn't find a `return` in your code — make sure your function actually returns a result."
+                ),
             ),
             FeedbackBullet(
                 kind="good" if has_solution_class else "warn",
-                text="You defined a Solution class as expected." if has_solution_class else "Wrap your code in a `Solution` class for LeetCode-style problems.",
+                text=(
+                    "You defined a Solution class as expected."
+                    if has_solution_class
+                    else "Wrap your code in a `Solution` class for LeetCode-style problems."
+                ),
             ),
         ],
         source="heuristic",
@@ -788,6 +855,7 @@ def _evaluate_with_heuristic(inp: EvaluationInput) -> EvaluationResult:
 
 
 # --------------------------- small helpers ---------------------------------
+
 
 def _clamp_int(value: Any, lo: int, hi: int, *, default: int = 0) -> int:
     try:

@@ -23,7 +23,9 @@ def _issue_token(user: User) -> Token:
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
-def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)) -> Token:
+def register(
+    payload: RegisterRequest, request: Request, db: Session = Depends(get_db)
+) -> Token:
     # In production we disable open self-registration (set ALLOW_REGISTRATION=false
     # on the EC2 .env). Admins can still create users via /api/admin/* and the
     # existing seeded accounts continue to work normally.
@@ -37,8 +39,13 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
 
     existing = db.scalar(select(User).where(User.email == email))
     if existing is not None:
-        audit.record(db, user_id=None, event_type="register.duplicate",
-                     detail=f"email={email}", request=request)
+        audit.record(
+            db,
+            user_id=None,
+            event_type="register.duplicate",
+            detail=f"email={email}",
+            request=request,
+        )
         db.commit()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -53,23 +60,35 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
     )
     db.add(user)
     db.flush()
-    audit.record(db, user_id=user.user_id, event_type="register.success",
-                 detail=f"email={email}", request=request)
+    audit.record(
+        db,
+        user_id=user.user_id,
+        event_type="register.success",
+        detail=f"email={email}",
+        request=request,
+    )
     db.commit()
     db.refresh(user)
     return _issue_token(user)
 
 
 @router.post("/login", response_model=Token)
-def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)) -> Token:
+def login(
+    payload: LoginRequest, request: Request, db: Session = Depends(get_db)
+) -> Token:
     email = payload.email.lower().strip()
     user = db.scalar(select(User).where(User.email == email))
 
     # Use a single generic error to avoid leaking whether the email exists.
     if user is None or not verify_password(payload.password, user.password_hash):
         # Audit failed attempt -- counted toward intrusion-detection if added later.
-        audit.record(db, user_id=user.user_id if user else None,
-                     event_type="login.failed", detail=f"email={email}", request=request)
+        audit.record(
+            db,
+            user_id=user.user_id if user else None,
+            event_type="login.failed",
+            detail=f"email={email}",
+            request=request,
+        )
         db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -77,8 +96,13 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
         )
 
     user.last_login_at = datetime.now(timezone.utc)
-    audit.record(db, user_id=user.user_id, event_type="login.success",
-                 detail=f"email={email}", request=request)
+    audit.record(
+        db,
+        user_id=user.user_id,
+        event_type="login.success",
+        detail=f"email={email}",
+        request=request,
+    )
     db.commit()
     db.refresh(user)
     return _issue_token(user)

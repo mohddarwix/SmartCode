@@ -5,7 +5,15 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..deps import require_diagnostic_complete
 from ..llm import recommender
-from ..models import Problem, ProblemSkill, ProblemStatus, Recommendation, Skill, User, UserSkill
+from ..models import (
+    Problem,
+    ProblemSkill,
+    ProblemStatus,
+    Recommendation,
+    Skill,
+    User,
+    UserSkill,
+)
 from ..schemas import NextProblemSuggestion
 
 router = APIRouter(prefix="/me", tags=["recommendations"])
@@ -24,8 +32,13 @@ def next_recommendations(
     # 1) Already have a stored recommendation batch? Use the 3 most recent.
     rec_rows = db.scalars(
         select(Recommendation)
-        .where(Recommendation.user_id == user.user_id, Recommendation.is_consumed.is_(False))
-        .order_by(Recommendation.created_at.desc(), Recommendation.recommendation_id.desc())
+        .where(
+            Recommendation.user_id == user.user_id,
+            Recommendation.is_consumed.is_(False),
+        )
+        .order_by(
+            Recommendation.created_at.desc(), Recommendation.recommendation_id.desc()
+        )
         .limit(3)
     ).all()
     if rec_rows:
@@ -38,13 +51,15 @@ def next_recommendations(
             if not problem or not problem.is_active:
                 continue
             seen_pids.add(r.problem_id)
-            out.append(NextProblemSuggestion(
-                problem_id=problem.problem_id,
-                title=problem.title,
-                difficulty=problem.difficulty,
-                reason_md=r.reason_md,
-                estimated_minutes=problem.estimated_minutes,
-            ))
+            out.append(
+                NextProblemSuggestion(
+                    problem_id=problem.problem_id,
+                    title=problem.title,
+                    difficulty=problem.difficulty,
+                    reason_md=r.reason_md,
+                    estimated_minutes=problem.estimated_minutes,
+                )
+            )
         if out:
             return out
 
@@ -68,13 +83,15 @@ def next_recommendations(
                 algo_version=f"{rec_set.source}-v2-3picks",
             )
         )
-        suggestions.append(NextProblemSuggestion(
-            problem_id=problem.problem_id,
-            title=problem.title,
-            difficulty=problem.difficulty,
-            reason_md=pick.reason_md,
-            estimated_minutes=problem.estimated_minutes,
-        ))
+        suggestions.append(
+            NextProblemSuggestion(
+                problem_id=problem.problem_id,
+                title=problem.title,
+                difficulty=problem.difficulty,
+                reason_md=pick.reason_md,
+                estimated_minutes=problem.estimated_minutes,
+            )
+        )
     db.commit()
     return suggestions
 
@@ -113,7 +130,11 @@ def _build_catalogue(db: Session, user_id: int) -> list[recommender.CataloguePro
 def _user_skill_scores(db: Session, user_id: int) -> list[recommender.SkillScore]:
     rows = db.execute(
         select(Skill.name, UserSkill.score)
-        .join(UserSkill, (UserSkill.skill_id == Skill.skill_id) & (UserSkill.user_id == user_id), isouter=True)
+        .join(
+            UserSkill,
+            (UserSkill.skill_id == Skill.skill_id) & (UserSkill.user_id == user_id),
+            isouter=True,
+        )
         .order_by(Skill.display_order)
     ).all()
     return [recommender.SkillScore(name=name, score=score or 0) for name, score in rows]

@@ -26,7 +26,6 @@ from app.database import SessionLocal
 from app.llm import client as llm_client
 from app.models import Problem, ProblemSkill, Skill
 
-
 SYSTEM_PROMPT = """You generate focused Python 3 syntax cheatsheets for programming-problem solvers.
 
 Style: like the right-hand panel on w3schools - a tiny, scannable reference. NO prose explanations. ONLY the Python primitives the student needs to solve the SPECIFIC problem at hand. Imagine the student forgot Python syntax but already knows the algorithm.
@@ -93,14 +92,22 @@ def sql_escape(s: str) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--force", action="store_true", help="Regenerate even where one exists")
+    ap.add_argument(
+        "--force", action="store_true", help="Regenerate even where one exists"
+    )
     ap.add_argument("--slug", help="Only process this slug")
-    ap.add_argument("--out", default="database/seed_cheatsheets.sql",
-                    help="Where to write the portable UPDATE batch (relative to repo root)")
+    ap.add_argument(
+        "--out",
+        default="database/seed_cheatsheets.sql",
+        help="Where to write the portable UPDATE batch (relative to repo root)",
+    )
     args = ap.parse_args()
 
     if not llm_client.is_available():
-        print("ERROR: GOOGLE_API_KEY not set or empty. Cannot call Gemini.", file=sys.stderr)
+        print(
+            "ERROR: GOOGLE_API_KEY not set or empty. Cannot call Gemini.",
+            file=sys.stderr,
+        )
         return 1
 
     db = SessionLocal()
@@ -162,7 +169,9 @@ def main() -> int:
             for pid, slug, md in rows:
                 escaped = sql_escape(md)
                 f.write(f"-- #{pid} {slug}\n")
-                f.write(f"UPDATE problems SET cheatsheet_md = '{escaped}' WHERE problem_id = {pid};\n\n")
+                f.write(
+                    f"UPDATE problems SET cheatsheet_md = '{escaped}' WHERE problem_id = {pid};\n\n"
+                )
 
         print(f"\nGenerated: {len(generated)}  Skipped (already had one): {skipped}")
         print(f"Wrote portable SQL: {out_path}")

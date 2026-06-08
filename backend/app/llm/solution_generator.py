@@ -33,9 +33,9 @@ class SolutionInput(BaseModel):
 
 
 class SolutionResult(BaseModel):
-    explanation_md: str       # 3-6 short paragraphs walking through the approach
-    solution_code: str        # complete, runnable Python (Solution class)
-    time_complexity: str      # "O(n)", "O(n log n)", etc.
+    explanation_md: str  # 3-6 short paragraphs walking through the approach
+    solution_code: str  # complete, runnable Python (Solution class)
+    time_complexity: str  # "O(n)", "O(n log n)", etc.
     space_complexity: str
     source: Literal["llm", "heuristic"]
 
@@ -71,6 +71,7 @@ def generate_solution(inp: SolutionInput) -> SolutionResult:
 
 # --------------------------- LLM path ---------------------------
 
+
 def _generate_with_llm(inp: SolutionInput) -> SolutionResult:
     parts = [
         f"# Problem: {inp.problem_title} ({inp.difficulty})",
@@ -103,14 +104,17 @@ def _generate_with_llm(inp: SolutionInput) -> SolutionResult:
     return SolutionResult(
         solution_code=code,
         explanation_md=str(raw.get("explanation_md") or "").strip()
-            or "_(no explanation provided)_",
-        time_complexity=str(raw.get("time_complexity") or "").strip() or "(not specified)",
-        space_complexity=str(raw.get("space_complexity") or "").strip() or "(not specified)",
+        or "_(no explanation provided)_",
+        time_complexity=str(raw.get("time_complexity") or "").strip()
+        or "(not specified)",
+        space_complexity=str(raw.get("space_complexity") or "").strip()
+        or "(not specified)",
         source="llm",
     )
 
 
 # --------------------------- Heuristic fallback ---------------------------
+
 
 def _generate_with_heuristic(inp: SolutionInput) -> SolutionResult:
     """Best-effort placeholder when Gemini is offline."""
@@ -196,7 +200,9 @@ def stream_live_solve(inp: SolutionInput) -> "Iterator[str]":
             "## Starter signature (match this exactly)\n"
             f"```{inp.language}\n{inp.starter_code_md}\n```"
         )
-    parts.append("Now solve the problem live, following the exact structure in your system instructions.")
+    parts.append(
+        "Now solve the problem live, following the exact structure in your system instructions."
+    )
     user_text = "\n\n".join(parts)
 
     yield from llm_client.call_text_stream(

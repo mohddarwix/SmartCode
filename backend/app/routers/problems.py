@@ -7,7 +7,12 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..deps import get_current_user, require_diagnostic_complete
-from ..llm import hint_generator, interactive_tutor, solution_generator, submission_evaluator
+from ..llm import (
+    hint_generator,
+    interactive_tutor,
+    solution_generator,
+    submission_evaluator,
+)
 from ..models import (
     AiSolution,
     Feedback,
@@ -96,8 +101,9 @@ def list_problems(
       each accepted submission — students don't get a browseable catalog.
     """
     status_rows = db.execute(
-        select(ProblemStatus.problem_id, ProblemStatus.status, ProblemStatus.best_score)
-        .where(ProblemStatus.user_id == user.user_id)
+        select(
+            ProblemStatus.problem_id, ProblemStatus.status, ProblemStatus.best_score
+        ).where(ProblemStatus.user_id == user.user_id)
     ).all()
     status_by_pid = {pid: (s, score) for pid, s, score in status_rows}
 
@@ -108,7 +114,9 @@ def list_problems(
         recommended_ids = {
             pid
             for (pid,) in db.execute(
-                select(Recommendation.problem_id).where(Recommendation.user_id == user.user_id)
+                select(Recommendation.problem_id).where(
+                    Recommendation.user_id == user.user_id
+                )
             ).all()
         }
         touched_ids = set(status_by_pid.keys())
@@ -157,7 +165,9 @@ def problem_detail(
 ) -> ProblemDetail:
     problem = db.get(Problem, problem_id)
     if problem is None or not problem.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found"
+        )
 
     # Students can only open problems that have been recommended OR they've
     # already attempted — same gate as the list endpoint, applied per-problem
@@ -183,14 +193,20 @@ def problem_detail(
 
     visible_cases = db.scalars(
         select(TestCase)
-        .where(TestCase.problem_id == problem_id, TestCase.visibility.in_(["sample", "public"]))
+        .where(
+            TestCase.problem_id == problem_id,
+            TestCase.visibility.in_(["sample", "public"]),
+        )
         .order_by(TestCase.test_case_id)
     ).all()
-    hidden_count = db.scalar(
-        select(func.count())
-        .select_from(TestCase)
-        .where(TestCase.problem_id == problem_id, TestCase.visibility == "hidden")
-    ) or 0
+    hidden_count = (
+        db.scalar(
+            select(func.count())
+            .select_from(TestCase)
+            .where(TestCase.problem_id == problem_id, TestCase.visibility == "hidden")
+        )
+        or 0
+    )
 
     return ProblemDetail(
         problem_id=problem.problem_id,
@@ -276,12 +292,17 @@ def problem_hint(
     """
     problem = db.get(Problem, problem_id)
     if problem is None or not problem.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found"
+        )
     _block_if_solved(db, user, problem_id)
 
     visible_cases = db.scalars(
         select(TestCase)
-        .where(TestCase.problem_id == problem_id, TestCase.visibility.in_(["sample", "public"]))
+        .where(
+            TestCase.problem_id == problem_id,
+            TestCase.visibility.in_(["sample", "public"]),
+        )
         .order_by(TestCase.test_case_id)
     ).all()
     sample_cases = [
@@ -347,21 +368,29 @@ def run_plain(
     """
     problem = db.get(Problem, problem_id)
     if problem is None or not problem.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found"
+        )
     _block_if_solved(db, user, problem_id)
 
     visible_cases = db.scalars(
         select(TestCase)
-        .where(TestCase.problem_id == problem_id, TestCase.visibility.in_(["sample", "public"]))
+        .where(
+            TestCase.problem_id == problem_id,
+            TestCase.visibility.in_(["sample", "public"]),
+        )
         .order_by(TestCase.test_case_id)
     ).all()
     if not visible_cases:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No visible test cases.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No visible test cases."
+        )
 
     # Execute every case through the sandbox. The sandbox is what the LLM path
     # already uses for ground-truth pass/fail, so plain run and AI run agree
     # on correctness -- the difference is just whether LLM commentary runs.
     from ..sandbox import PROBLEM_CONFIGS, run_all_cases
+
     if problem.slug not in PROBLEM_CONFIGS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -369,10 +398,16 @@ def run_plain(
         )
 
     cases_payload = [
-        {"case_index": i + 1, "input_blob": tc.input_blob, "expected_blob": tc.expected_blob}
+        {
+            "case_index": i + 1,
+            "input_blob": tc.input_blob,
+            "expected_blob": tc.expected_blob,
+        }
         for i, tc in enumerate(visible_cases)
     ]
-    sandbox_results = run_all_cases(slug=problem.slug, user_code=payload.code, cases=cases_payload)
+    sandbox_results = run_all_cases(
+        slug=problem.slug, user_code=payload.code, cases=cases_payload
+    )
     by_index = {r.case_index: r for r in sandbox_results}
 
     cases_out: list[TestCaseResultOut] = []
@@ -381,23 +416,28 @@ def run_plain(
         sb = by_index.get(i)
         if sb is None:
             continue
-        if sb.error and ("Error" in sb.error or "Exception" in sb.error or "Timed out" in sb.error):
+        if sb.error and (
+            "Error" in sb.error or "Exception" in sb.error or "Timed out" in sb.error
+        ):
             any_runtime_error = True
         predicted = sb.actual_output or (sb.error or "(no output)")
-        cases_out.append(TestCaseResultOut(
-            case_index=i,
-            name=tc.name,
-            visibility=tc.visibility,
-            input_blob=tc.input_blob,
-            expected_blob=tc.expected_blob,
-            predicted_output=predicted,
-            passed=sb.passed,
-            explanation_md=(
-                f"Got `{predicted}`, expected `{sb.expected_output}`."
-                if not sb.passed else ""
-            ),
-            severity=None,
-        ))
+        cases_out.append(
+            TestCaseResultOut(
+                case_index=i,
+                name=tc.name,
+                visibility=tc.visibility,
+                input_blob=tc.input_blob,
+                expected_blob=tc.expected_blob,
+                predicted_output=predicted,
+                passed=sb.passed,
+                explanation_md=(
+                    f"Got `{predicted}`, expected `{sb.expected_output}`."
+                    if not sb.passed
+                    else ""
+                ),
+                severity=None,
+            )
+        )
 
     passed = sum(1 for c in cases_out if c.passed)
     total = len(cases_out)
@@ -434,12 +474,17 @@ def run_with_ai(
     """
     problem = db.get(Problem, problem_id)
     if problem is None or not problem.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found"
+        )
     _block_if_solved(db, user, problem_id)
 
     visible_cases = db.scalars(
         select(TestCase)
-        .where(TestCase.problem_id == problem_id, TestCase.visibility.in_(["sample", "public"]))
+        .where(
+            TestCase.problem_id == problem_id,
+            TestCase.visibility.in_(["sample", "public"]),
+        )
         .order_by(TestCase.test_case_id)
     ).all()
     snapshots = [
@@ -531,7 +576,9 @@ def my_submissions(
     """
     problem = db.get(Problem, problem_id)
     if problem is None or not problem.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found"
+        )
 
     rows = db.scalars(
         select(Submission)
@@ -544,26 +591,33 @@ def my_submissions(
     ).all()
 
     # Per-submission metrics for the passed/total badge.
-    metric_rows = db.execute(
-        select(Metric.submission_id, Metric.passed_count, Metric.total_count)
-        .where(Metric.submission_id.in_([s.submission_id for s in rows]))
-    ).all() if rows else []
+    metric_rows = (
+        db.execute(
+            select(Metric.submission_id, Metric.passed_count, Metric.total_count).where(
+                Metric.submission_id.in_([s.submission_id for s in rows])
+            )
+        ).all()
+        if rows
+        else []
+    )
     metrics_by_sid = {sid: (p, t) for sid, p, t in metric_rows}
 
     out: list[MySubmissionListItem] = []
     for s in rows:
         p_t = metrics_by_sid.get(s.submission_id, (None, None))
-        out.append(MySubmissionListItem(
-            submission_id=s.submission_id,
-            kind=s.kind,
-            status=s.status,
-            score=s.score,
-            submitted_at=s.submitted_at,
-            language=s.language,
-            code=s.code,
-            passed_count=p_t[0],
-            total_count=p_t[1],
-        ))
+        out.append(
+            MySubmissionListItem(
+                submission_id=s.submission_id,
+                kind=s.kind,
+                status=s.status,
+                score=s.score,
+                submitted_at=s.submitted_at,
+                language=s.language,
+                code=s.code,
+                passed_count=p_t[0],
+                total_count=p_t[1],
+            )
+        )
     return out
 
 
@@ -579,7 +633,9 @@ def my_attempt(
     """
     problem = db.get(Problem, problem_id)
     if problem is None or not problem.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found"
+        )
 
     accepted = db.scalar(
         select(Submission)
@@ -597,7 +653,9 @@ def my_attempt(
             detail="You haven't solved this problem yet.",
         )
 
-    metric = db.scalar(select(Metric).where(Metric.submission_id == accepted.submission_id))
+    metric = db.scalar(
+        select(Metric).where(Metric.submission_id == accepted.submission_id)
+    )
     feedback = db.scalar(
         select(Feedback)
         .where(Feedback.submission_id == accepted.submission_id)
@@ -605,7 +663,7 @@ def my_attempt(
     )
 
     cases_out: list[TestCaseResultOut] = []
-    for entry in (accepted.case_results_json or []):
+    for entry in accepted.case_results_json or []:
         if isinstance(entry, dict):
             try:
                 cases_out.append(TestCaseResultOut(**entry))
@@ -637,7 +695,11 @@ def my_attempt(
         ),
         feedback_summary_md=feedback.summary_md if feedback else None,
         feedback_bullets=(
-            [FeedbackBullet(**b) for b in (feedback.bullets_json or []) if isinstance(b, dict)]
+            [
+                FeedbackBullet(**b)
+                for b in (feedback.bullets_json or [])
+                if isinstance(b, dict)
+            ]
             if feedback
             else []
         ),
@@ -650,7 +712,9 @@ def my_attempt(
 
     hints = db.scalars(
         select(HintRequest)
-        .where(HintRequest.user_id == user.user_id, HintRequest.problem_id == problem_id)
+        .where(
+            HintRequest.user_id == user.user_id, HintRequest.problem_id == problem_id
+        )
         .order_by(HintRequest.created_at)
     ).all()
     hint_records = [
@@ -698,7 +762,9 @@ def ai_solve_stream(
     """
     problem = db.get(Problem, problem_id)
     if problem is None or not problem.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found"
+        )
 
     # The live AI walkthrough is always accessible — no solved-gate. Students
     # can watch the tutor solve a problem at any time, including before they
@@ -706,7 +772,10 @@ def ai_solve_stream(
 
     visible_cases = db.scalars(
         select(TestCase)
-        .where(TestCase.problem_id == problem_id, TestCase.visibility.in_(["sample", "public"]))
+        .where(
+            TestCase.problem_id == problem_id,
+            TestCase.visibility.in_(["sample", "public"]),
+        )
         .order_by(TestCase.test_case_id)
     ).all()
     sample_cases = [
@@ -736,7 +805,7 @@ def ai_solve_stream(
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache, no-transform",
-            "X-Accel-Buffering": "no",   # disable proxy buffering (nginx)
+            "X-Accel-Buffering": "no",  # disable proxy buffering (nginx)
             "Connection": "keep-alive",
         },
     )
@@ -759,7 +828,9 @@ def ai_tutor_turn(
     """
     problem = db.get(Problem, problem_id)
     if problem is None or not problem.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found"
+        )
 
     # Pick the first sample case so the tutor can reference it during the trace step.
     sample = db.scalar(
@@ -807,7 +878,9 @@ def ai_solution(
     """
     problem = db.get(Problem, problem_id)
     if problem is None or not problem.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found"
+        )
 
     sol = db.scalar(
         select(AiSolution)
@@ -818,11 +891,18 @@ def ai_solution(
         # Generate on-demand, then cache so we only pay once per problem.
         visible_cases = db.scalars(
             select(TestCase)
-            .where(TestCase.problem_id == problem_id, TestCase.visibility.in_(["sample", "public"]))
+            .where(
+                TestCase.problem_id == problem_id,
+                TestCase.visibility.in_(["sample", "public"]),
+            )
             .order_by(TestCase.test_case_id)
         ).all()
         sample_cases = [
-            {"name": c.name, "input_blob": c.input_blob, "expected_blob": c.expected_blob}
+            {
+                "name": c.name,
+                "input_blob": c.input_blob,
+                "expected_blob": c.expected_blob,
+            }
             for c in visible_cases[:3]
         ]
         generated = solution_generator.generate_solution(

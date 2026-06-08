@@ -32,35 +32,50 @@ from pydantic import BaseModel
 
 # --------------------------- Problem configuration -------------------------
 
+
 class ProblemConfig(BaseModel):
-    method: str                                                  # method name on Solution
-    params: list[str]                                            # variable names in input_blob, in call order
+    method: str  # method name on Solution
+    params: list[str]  # variable names in input_blob, in call order
     input_adapter: Literal["default", "linked_list"] = "default"
-    output_adapter: Literal["default", "linked_list", "sorted_list_of_lists", "float_5dp"] = "default"
+    output_adapter: Literal[
+        "default", "linked_list", "sorted_list_of_lists", "float_5dp"
+    ] = "default"
 
 
 PROBLEM_CONFIGS: dict[str, ProblemConfig] = {
     "two-sum": ProblemConfig(method="twoSum", params=["nums", "target"]),
     "valid-parentheses": ProblemConfig(method="isValid", params=["s"]),
     "reverse-linked-list": ProblemConfig(
-        method="reverseList", params=["head"],
-        input_adapter="linked_list", output_adapter="linked_list",
+        method="reverseList",
+        params=["head"],
+        input_adapter="linked_list",
+        output_adapter="linked_list",
     ),
     "climbing-stairs": ProblemConfig(method="climbStairs", params=["n"]),
-    "best-time-to-buy-and-sell-stock": ProblemConfig(method="maxProfit", params=["prices"]),
+    "best-time-to-buy-and-sell-stock": ProblemConfig(
+        method="maxProfit", params=["prices"]
+    ),
     "maximum-subarray": ProblemConfig(method="maxSubArray", params=["nums"]),
     "container-with-most-water": ProblemConfig(method="maxArea", params=["height"]),
-    "three-sum": ProblemConfig(method="threeSum", params=["nums"], output_adapter="sorted_list_of_lists"),
-    "group-anagrams": ProblemConfig(method="groupAnagrams", params=["strs"], output_adapter="sorted_list_of_lists"),
+    "three-sum": ProblemConfig(
+        method="threeSum", params=["nums"], output_adapter="sorted_list_of_lists"
+    ),
+    "group-anagrams": ProblemConfig(
+        method="groupAnagrams", params=["strs"], output_adapter="sorted_list_of_lists"
+    ),
     "number-of-islands": ProblemConfig(method="numIslands", params=["grid"]),
     "coin-change": ProblemConfig(method="coinChange", params=["coins", "amount"]),
     "longest-substring-without-repeating-characters": ProblemConfig(
-        method="lengthOfLongestSubstring", params=["s"],
+        method="lengthOfLongestSubstring",
+        params=["s"],
     ),
     "trapping-rain-water": ProblemConfig(method="trap", params=["height"]),
-    "word-ladder": ProblemConfig(method="ladderLength", params=["beginWord", "endWord", "wordList"]),
+    "word-ladder": ProblemConfig(
+        method="ladderLength", params=["beginWord", "endWord", "wordList"]
+    ),
     "median-of-two-sorted-arrays": ProblemConfig(
-        method="findMedianSortedArrays", params=["nums1", "nums2"],
+        method="findMedianSortedArrays",
+        params=["nums1", "nums2"],
         output_adapter="float_5dp",
     ),
     # Easy (16-30)
@@ -77,49 +92,74 @@ PROBLEM_CONFIGS: dict[str, ProblemConfig] = {
     "move-zeroes": ProblemConfig(method="moveZeroes", params=["nums"]),
     "happy-number": ProblemConfig(method="isHappy", params=["n"]),
     "power-of-two": ProblemConfig(method="isPowerOfTwo", params=["n"]),
-    "excel-sheet-column-number": ProblemConfig(method="titleToNumber", params=["columnTitle"]),
+    "excel-sheet-column-number": ProblemConfig(
+        method="titleToNumber", params=["columnTitle"]
+    ),
     "length-of-last-word": ProblemConfig(method="lengthOfLastWord", params=["s"]),
     # Medium (31-45)
-    "product-of-array-except-self": ProblemConfig(method="productExceptSelf", params=["nums"]),
+    "product-of-array-except-self": ProblemConfig(
+        method="productExceptSelf", params=["nums"]
+    ),
     "rotate-array": ProblemConfig(method="rotate", params=["nums", "k"]),
-    "search-in-rotated-sorted-array": ProblemConfig(method="search", params=["nums", "target"]),
+    "search-in-rotated-sorted-array": ProblemConfig(
+        method="search", params=["nums", "target"]
+    ),
     "sort-colors": ProblemConfig(method="sortColors", params=["nums"]),
     "rotate-image": ProblemConfig(method="rotate", params=["matrix"]),
-    "subsets": ProblemConfig(method="subsets", params=["nums"], output_adapter="sorted_list_of_lists"),
-    "combination-sum": ProblemConfig(method="combinationSum", params=["candidates", "target"], output_adapter="sorted_list_of_lists"),
+    "subsets": ProblemConfig(
+        method="subsets", params=["nums"], output_adapter="sorted_list_of_lists"
+    ),
+    "combination-sum": ProblemConfig(
+        method="combinationSum",
+        params=["candidates", "target"],
+        output_adapter="sorted_list_of_lists",
+    ),
     "spiral-matrix": ProblemConfig(method="spiralOrder", params=["matrix"]),
     "unique-paths": ProblemConfig(method="uniquePaths", params=["m", "n"]),
     "minimum-path-sum": ProblemConfig(method="minPathSum", params=["grid"]),
     "jump-game": ProblemConfig(method="canJump", params=["nums"]),
     "word-break": ProblemConfig(method="wordBreak", params=["s", "wordDict"]),
-    "longest-increasing-subsequence": ProblemConfig(method="lengthOfLIS", params=["nums"]),
+    "longest-increasing-subsequence": ProblemConfig(
+        method="lengthOfLIS", params=["nums"]
+    ),
     "house-robber": ProblemConfig(method="rob", params=["nums"]),
-    "kth-largest-element-in-an-array": ProblemConfig(method="findKthLargest", params=["nums", "k"]),
+    "kth-largest-element-in-an-array": ProblemConfig(
+        method="findKthLargest", params=["nums", "k"]
+    ),
     # Hard (46-55)
     "edit-distance": ProblemConfig(method="minDistance", params=["word1", "word2"]),
-    "first-missing-positive": ProblemConfig(method="firstMissingPositive", params=["nums"]),
-    "largest-rectangle-in-histogram": ProblemConfig(method="largestRectangleArea", params=["heights"]),
+    "first-missing-positive": ProblemConfig(
+        method="firstMissingPositive", params=["nums"]
+    ),
+    "largest-rectangle-in-histogram": ProblemConfig(
+        method="largestRectangleArea", params=["heights"]
+    ),
     "n-queens-count": ProblemConfig(method="totalNQueens", params=["n"]),
-    "sliding-window-maximum": ProblemConfig(method="maxSlidingWindow", params=["nums", "k"]),
+    "sliding-window-maximum": ProblemConfig(
+        method="maxSlidingWindow", params=["nums", "k"]
+    ),
     "minimum-window-substring": ProblemConfig(method="minWindow", params=["s", "t"]),
     "burst-balloons": ProblemConfig(method="maxCoins", params=["nums"]),
     "wildcard-matching": ProblemConfig(method="isMatch", params=["s", "p"]),
     "regular-expression-matching": ProblemConfig(method="isMatch", params=["s", "p"]),
-    "longest-valid-parentheses": ProblemConfig(method="longestValidParentheses", params=["s"]),
+    "longest-valid-parentheses": ProblemConfig(
+        method="longestValidParentheses", params=["s"]
+    ),
 }
 
 
 # --------------------------- Result model ---------------------------------
 
+
 class CaseExecutionResult(BaseModel):
     case_index: int
     passed: bool
-    actual_output: str        # canonical LC-style string ("" if error)
-    expected_output: str      # normalized expected for comparison/display
+    actual_output: str  # canonical LC-style string ("" if error)
+    expected_output: str  # normalized expected for comparison/display
     error: str | None = None  # exception class+message, or sandbox/config error
     timed_out: bool = False
-    elapsed_ms: int = 0       # wall time the user method took (per case)
-    peak_memory_kb: int = 0   # peak Python-allocated memory during user method
+    elapsed_ms: int = 0  # wall time the user method took (per case)
+    peak_memory_kb: int = 0  # peak Python-allocated memory during user method
 
 
 # --------------------------- Subprocess harness ---------------------------
@@ -309,6 +349,7 @@ except Exception as exc:  # pragma: no cover — last-ditch harness safety
 
 # --------------------------- Public API -----------------------------------
 
+
 def _normalize_expected(expected_blob: str, output_adapter: str) -> str:
     """Apply the same canonicalization to expected_blob that adapt_output
     applies to actual values, so a string-equality compare works."""
@@ -317,7 +358,7 @@ def _normalize_expected(expected_blob: str, output_adapter: str) -> str:
         return expected_blob.replace(" ", "").strip()
     if output_adapter == "float_5dp":
         try:
-            return ("%.5f" % float(expected_blob.strip()))
+            return "%.5f" % float(expected_blob.strip())
         except ValueError:
             return expected_blob.strip()
     if output_adapter == "sorted_list_of_lists":
@@ -351,7 +392,9 @@ def run_case(
     cfg = PROBLEM_CONFIGS.get(slug)
     if cfg is None:
         return CaseExecutionResult(
-            case_index=case_index, passed=False, actual_output="",
+            case_index=case_index,
+            passed=False,
+            actual_output="",
             expected_output=expected_blob.strip(),
             error=f"No sandbox config for problem '{slug}'",
         )
@@ -377,14 +420,19 @@ def run_case(
         )
     except subprocess.TimeoutExpired:
         return CaseExecutionResult(
-            case_index=case_index, passed=False, actual_output="",
+            case_index=case_index,
+            passed=False,
+            actual_output="",
             expected_output=expected_normalized,
-            error=f"Timed out after {timeout}s", timed_out=True,
+            error=f"Timed out after {timeout}s",
+            timed_out=True,
         )
 
     if proc.returncode != 0:
         return CaseExecutionResult(
-            case_index=case_index, passed=False, actual_output="",
+            case_index=case_index,
+            passed=False,
+            actual_output="",
             expected_output=expected_normalized,
             error=f"Sandbox crashed (exit {proc.returncode}): {proc.stderr[-200:]}",
         )
@@ -393,7 +441,9 @@ def run_case(
         result = json.loads(proc.stdout.strip().splitlines()[-1])
     except (json.JSONDecodeError, IndexError):
         return CaseExecutionResult(
-            case_index=case_index, passed=False, actual_output="",
+            case_index=case_index,
+            passed=False,
+            actual_output="",
             expected_output=expected_normalized,
             error=f"Non-JSON sandbox response: {proc.stdout[-200:]}",
         )
@@ -404,16 +454,23 @@ def run_case(
     peak_kb = int(result.get("peak_memory_kb") or 0)
     if err:
         return CaseExecutionResult(
-            case_index=case_index, passed=False, actual_output=actual,
-            expected_output=expected_normalized, error=err,
-            elapsed_ms=elapsed, peak_memory_kb=peak_kb,
+            case_index=case_index,
+            passed=False,
+            actual_output=actual,
+            expected_output=expected_normalized,
+            error=err,
+            elapsed_ms=elapsed,
+            peak_memory_kb=peak_kb,
         )
 
     passed = actual == expected_normalized
     return CaseExecutionResult(
-        case_index=case_index, passed=passed, actual_output=actual,
+        case_index=case_index,
+        passed=passed,
+        actual_output=actual,
         expected_output=expected_normalized,
-        elapsed_ms=elapsed, peak_memory_kb=peak_kb,
+        elapsed_ms=elapsed,
+        peak_memory_kb=peak_kb,
     )
 
 
@@ -432,15 +489,23 @@ def run_all_cases(
     """
     out: list[CaseExecutionResult] = []
     for c in cases:
-        out.append(run_case(
-            slug=slug,
-            user_code=user_code,
-            input_blob=c["input_blob"],
-            expected_blob=c["expected_blob"],
-            case_index=c["case_index"],
-            timeout=timeout_per_case,
-        ))
+        out.append(
+            run_case(
+                slug=slug,
+                user_code=user_code,
+                input_blob=c["input_blob"],
+                expected_blob=c["expected_blob"],
+                case_index=c["case_index"],
+                timeout=timeout_per_case,
+            )
+        )
     return out
 
 
-__all__ = ["CaseExecutionResult", "ProblemConfig", "PROBLEM_CONFIGS", "run_case", "run_all_cases"]
+__all__ = [
+    "CaseExecutionResult",
+    "ProblemConfig",
+    "PROBLEM_CONFIGS",
+    "run_case",
+    "run_all_cases",
+]

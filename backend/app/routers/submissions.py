@@ -38,6 +38,7 @@ from ..models import (
     UserSkill,
     UserSkillHistory,
 )
+
 # Mirror of problems.HINT_COST_BY_INDEX / HINT_TOTAL_CAP. Kept in sync deliberately —
 # the live tally shown in the editor must match what's deducted at Submit time.
 _HINT_COST_BY_INDEX: tuple[int, ...] = (3, 5, 8, 8, 8)
@@ -48,15 +49,22 @@ def _hint_cost_for(index_1based: int) -> int:
     return _HINT_COST_BY_INDEX[min(index_1based, len(_HINT_COST_BY_INDEX)) - 1]
 
 
-def _compute_hint_penalty(db: Session, user_id: int, problem_id: int) -> tuple[int, int]:
+def _compute_hint_penalty(
+    db: Session, user_id: int, problem_id: int
+) -> tuple[int, int]:
     """Return (hint_count, hint_penalty_points) for this user+problem."""
-    count = db.scalar(
-        select(func.count())
-        .select_from(HintRequest)
-        .where(HintRequest.user_id == user_id, HintRequest.problem_id == problem_id)
-    ) or 0
+    count = (
+        db.scalar(
+            select(func.count())
+            .select_from(HintRequest)
+            .where(HintRequest.user_id == user_id, HintRequest.problem_id == problem_id)
+        )
+        or 0
+    )
     raw_cost = sum(_hint_cost_for(i + 1) for i in range(count))
     return count, min(_HINT_TOTAL_CAP, raw_cost)
+
+
 from ..schemas import (
     FeedbackBullet,
     MetricsOut,
@@ -74,6 +82,7 @@ router = APIRouter(prefix="/submissions", tags=["submissions"])
 
 
 # --------------------------- evaluation -------------------------------------
+
 
 def _build_eval_input(
     db: Session,
@@ -237,9 +246,15 @@ def _build_penalty_bullet(
         )
 
     sev = breakdown["severity_counts"]
-    sev_parts = [f"{n} {label}" for label, n in (
-        ("severe", sev["severe"]), ("moderate", sev["moderate"]), ("minor", sev["minor"])
-    ) if n > 0]
+    sev_parts = [
+        f"{n} {label}"
+        for label, n in (
+            ("severe", sev["severe"]),
+            ("moderate", sev["moderate"]),
+            ("minor", sev["minor"]),
+        )
+        if n > 0
+    ]
     sev_tail = (
         f" ({', '.join(sev_parts)} failed cases). Severe failures cost the most; "
         "runs cost half of submits."
@@ -267,11 +282,11 @@ _MAX_BUMP_BY_DIFFICULTY: dict[str, int] = {"easy": 1, "medium": 2, "hard": 3}
 
 # Which LLM-graded axis drives each tagged skill's per-submission target.
 _SKILL_METRIC_MAP: dict[str, str] = {
-    "Algorithms":       "score_correctness",
-    "Data Structures":  "score_correctness",
-    "Edge Cases":       "score_edge_cases",
-    "Code Quality":     "score_code_quality",
-    "Time Complexity":  "score_time_complexity",
+    "Algorithms": "score_correctness",
+    "Data Structures": "score_correctness",
+    "Edge Cases": "score_edge_cases",
+    "Code Quality": "score_code_quality",
+    "Time Complexity": "score_time_complexity",
 }
 
 
@@ -315,9 +330,9 @@ def _apply_skill_updates(
     ).all()
 
     metric_values = {
-        "score_correctness":     evaluation.score_correctness,
-        "score_edge_cases":      evaluation.score_edge_cases,
-        "score_code_quality":    evaluation.score_code_quality,
+        "score_correctness": evaluation.score_correctness,
+        "score_edge_cases": evaluation.score_edge_cases,
+        "score_code_quality": evaluation.score_code_quality,
         "score_time_complexity": evaluation.score_time_complexity,
     }
     difficulty_factor = _DIFFICULTY_FACTOR.get(problem.difficulty, 1.0)
@@ -337,7 +352,9 @@ def _apply_skill_updates(
         metric_key = _SKILL_METRIC_MAP.get(name, "score_correctness")
         target = metric_values.get(metric_key, 0)
 
-        raw_delta = (target - before) * float(weight) * difficulty_factor * 0.08 * efficiency
+        raw_delta = (
+            (target - before) * float(weight) * difficulty_factor * 0.08 * efficiency
+        )
         # Floor at 0 — never lose skill points from a bad submission.
         bump = max(0, min(max_bump, round(raw_delta)))
         new_score = max(0, min(100, before + bump))
@@ -357,9 +374,14 @@ def _apply_skill_updates(
             )
         )
         if hist is None:
-            db.add(UserSkillHistory(
-                user_id=user_id, skill_id=skill_id, day=today, score=new_score,
-            ))
+            db.add(
+                UserSkillHistory(
+                    user_id=user_id,
+                    skill_id=skill_id,
+                    day=today,
+                    score=new_score,
+                )
+            )
         else:
             hist.score = new_score
 
@@ -367,9 +389,13 @@ def _apply_skill_updates(
     return deltas
 
 
-def _upsert_problem_status(db: Session, user_id: int, problem_id: int, accepted: bool, score: int) -> None:
+def _upsert_problem_status(
+    db: Session, user_id: int, problem_id: int, accepted: bool, score: int
+) -> None:
     ps = db.scalar(
-        select(ProblemStatus).where(ProblemStatus.user_id == user_id, ProblemStatus.problem_id == problem_id)
+        select(ProblemStatus).where(
+            ProblemStatus.user_id == user_id, ProblemStatus.problem_id == problem_id
+        )
     )
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     if ps is None:
@@ -387,6 +413,7 @@ def _upsert_problem_status(db: Session, user_id: int, problem_id: int, accepted:
 
 
 # --------------------------- recommendation -------------------------------
+
 
 def _make_recommendation(db: Session, user_id: int) -> list[Recommendation]:
     """
@@ -417,9 +444,8 @@ def _make_recommendation(db: Session, user_id: int) -> list[Recommendation]:
     # spaced-repetition cooldown are treated as is_solved=True (filtered out
     # by the recommender). Older solves become eligible again -- the system
     # may occasionally re-suggest them as refreshers.
-    cooldown_threshold = (
-        datetime.now(timezone.utc).replace(tzinfo=None)
-        - timedelta(days=SPACED_REPETITION_COOLDOWN_DAYS)
+    cooldown_threshold = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        days=SPACED_REPETITION_COOLDOWN_DAYS
     )
     solved_ids = {
         pid
@@ -472,6 +498,7 @@ def _make_recommendation(db: Session, user_id: int) -> list[Recommendation]:
 
 # --------------------------- endpoints ------------------------------------
 
+
 @router.post("", response_model=SubmissionDetail, status_code=status.HTTP_201_CREATED)
 def create_submission(
     payload: SubmissionCreate,
@@ -481,7 +508,9 @@ def create_submission(
 ) -> SubmissionDetail:
     problem = db.get(Problem, payload.problem_id)
     if problem is None or not problem.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found"
+        )
 
     # Once a student has solved a problem, the only thing they can do with it is
     # review the existing submission. No re-attempts; no new hints; no new runs.
@@ -505,13 +534,17 @@ def create_submission(
 
     raw_score = evaluation.score
     breakdown = _compute_failed_attempts_penalty(db, user.user_id, payload.problem_id)
-    hint_count, hint_penalty = _compute_hint_penalty(db, user.user_id, payload.problem_id)
+    hint_count, hint_penalty = _compute_hint_penalty(
+        db, user.user_id, payload.problem_id
+    )
     breakdown["hint_count"] = hint_count
     breakdown["hint_penalty"] = hint_penalty
     # Total deduction = scaled failed-attempt severity + flat hint points.
     # Floor at 50 for accepted; floor at 50 for wrong_answer too (legacy behavior).
     raw_deduction = _PENALTY_MULTIPLIER * breakdown["points"] + hint_penalty
-    final_score = max(_MIN_SCORE_AFTER_PENALTY, min(100, round(raw_score - raw_deduction)))
+    final_score = max(
+        _MIN_SCORE_AFTER_PENALTY, min(100, round(raw_score - raw_deduction))
+    )
     adjustment = ScoreAdjustment(
         raw_score=raw_score,
         penalty_points=round(breakdown["points"]) + hint_penalty,
@@ -570,13 +603,15 @@ def create_submission(
     for rec in next_recs:
         next_p = db.get(Problem, rec.problem_id)
         if next_p:
-            next_suggestions.append(NextProblemSuggestion(
-                problem_id=next_p.problem_id,
-                title=next_p.title,
-                difficulty=next_p.difficulty,
-                reason_md=rec.reason_md,
-                estimated_minutes=next_p.estimated_minutes,
-            ))
+            next_suggestions.append(
+                NextProblemSuggestion(
+                    problem_id=next_p.problem_id,
+                    title=next_p.title,
+                    difficulty=next_p.difficulty,
+                    reason_md=rec.reason_md,
+                    estimated_minutes=next_p.estimated_minutes,
+                )
+            )
 
     # Audit log: record submit attempts. Useful for instructor review of
     # who attempted what + their final scores.
@@ -594,8 +629,13 @@ def create_submission(
     db.refresh(submission)
 
     return _build_submission_detail(
-        db, submission, deltas, next_suggestions, bullets,
-        grader_source=evaluation.source, score_adjustment=adjustment,
+        db,
+        submission,
+        deltas,
+        next_suggestions,
+        bullets,
+        grader_source=evaluation.source,
+        score_adjustment=adjustment,
     )
 
 
@@ -606,9 +646,15 @@ def get_submission(
     db: Session = Depends(get_db),
 ) -> SubmissionDetail:
     submission = db.get(Submission, submission_id)
-    if submission is None or (submission.user_id != user.user_id and user.role != "admin"):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
-    return _build_submission_detail(db, submission, skills_updated=[], next_suggestions=[])
+    if submission is None or (
+        submission.user_id != user.user_id and user.role != "admin"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found"
+        )
+    return _build_submission_detail(
+        db, submission, skills_updated=[], next_suggestions=[]
+    )
 
 
 def _build_submission_detail(
@@ -621,9 +667,13 @@ def _build_submission_detail(
     score_adjustment: ScoreAdjustment | None = None,
 ) -> SubmissionDetail:
     problem = db.get(Problem, submission.problem_id)
-    metric = db.scalar(select(Metric).where(Metric.submission_id == submission.submission_id))
+    metric = db.scalar(
+        select(Metric).where(Metric.submission_id == submission.submission_id)
+    )
     feedback = db.scalar(
-        select(Feedback).where(Feedback.submission_id == submission.submission_id).order_by(Feedback.created_at.desc())
+        select(Feedback)
+        .where(Feedback.submission_id == submission.submission_id)
+        .order_by(Feedback.created_at.desc())
     )
 
     bullets: list[FeedbackBullet] = bullets_override or []
@@ -650,15 +700,19 @@ def _build_submission_detail(
         submitted_at=submission.submitted_at,
         total_runtime_ms=submission.total_runtime_ms,
         total_memory_kb=submission.total_memory_kb,
-        metrics=MetricsOut(
-            score_correctness=metric.score_correctness,
-            score_edge_cases=metric.score_edge_cases,
-            score_code_quality=metric.score_code_quality,
-            score_time_complexity=metric.score_time_complexity,
-            passed_count=metric.passed_count,
-            total_count=metric.total_count,
-            inferred_big_o=metric.inferred_big_o,
-        ) if metric else None,
+        metrics=(
+            MetricsOut(
+                score_correctness=metric.score_correctness,
+                score_edge_cases=metric.score_edge_cases,
+                score_code_quality=metric.score_code_quality,
+                score_time_complexity=metric.score_time_complexity,
+                passed_count=metric.passed_count,
+                total_count=metric.total_count,
+                inferred_big_o=metric.inferred_big_o,
+            )
+            if metric
+            else None
+        ),
         feedback_summary_md=feedback.summary_md if feedback else None,
         feedback_bullets=bullets,
         cases=cases,

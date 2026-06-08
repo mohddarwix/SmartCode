@@ -3,7 +3,6 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-
 # ---------------------------------------------------------------------------
 # Auth
 # ---------------------------------------------------------------------------
@@ -12,12 +11,34 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 # trivially guessable. Kept small on purpose -- this is a school project, not
 # a bank. Cover the cases real students actually pick first.
 _COMMON_WEAK_PASSWORDS = {
-    "password", "password1", "password123", "qwerty123", "12345678",
-    "abc12345", "letmein1", "welcome1", "iloveyou", "monkey123",
-    "admin123", "test1234", "passw0rd", "pa$$w0rd", "p@ssw0rd",
-    "changeme", "trustno1", "shadow12", "master12", "qwerty12",
-    "asdf1234", "1q2w3e4r", "1qaz2wsx", "qazwsx12", "zaq12wsx",
-    "lebanon1", "beirut12", "lau12345",
+    "password",
+    "password1",
+    "password123",
+    "qwerty123",
+    "12345678",
+    "abc12345",
+    "letmein1",
+    "welcome1",
+    "iloveyou",
+    "monkey123",
+    "admin123",
+    "test1234",
+    "passw0rd",
+    "pa$$w0rd",
+    "p@ssw0rd",
+    "changeme",
+    "trustno1",
+    "shadow12",
+    "master12",
+    "qwerty12",
+    "asdf1234",
+    "1q2w3e4r",
+    "1qaz2wsx",
+    "qazwsx12",
+    "zaq12wsx",
+    "lebanon1",
+    "beirut12",
+    "lau12345",
 }
 
 
@@ -33,13 +54,18 @@ def _validate_strong_password(value: str) -> str:
     has_upper = any(c.isupper() for c in pwd)
     has_digit = any(c.isdigit() for c in pwd)
     missing = []
-    if not has_lower: missing.append("a lowercase letter")
-    if not has_upper: missing.append("an uppercase letter")
-    if not has_digit: missing.append("a digit")
+    if not has_lower:
+        missing.append("a lowercase letter")
+    if not has_upper:
+        missing.append("an uppercase letter")
+    if not has_digit:
+        missing.append("a digit")
     if missing:
         raise ValueError("Password must include " + ", ".join(missing) + ".")
     if pwd.lower() in _COMMON_WEAK_PASSWORDS:
-        raise ValueError("This password is on the list of most-guessed passwords. Pick something less common.")
+        raise ValueError(
+            "This password is on the list of most-guessed passwords. Pick something less common."
+        )
     return pwd
 
 
@@ -81,6 +107,7 @@ class Token(BaseModel):
 # Skills
 # ---------------------------------------------------------------------------
 
+
 class SkillOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -104,6 +131,7 @@ class SkillHistoryPoint(BaseModel):
 # ---------------------------------------------------------------------------
 # Problems
 # ---------------------------------------------------------------------------
+
 
 class ProblemSummary(BaseModel):
     problem_id: int
@@ -135,7 +163,7 @@ class ProblemDetail(BaseModel):
     statement_md: str
     constraints_md: Optional[str] = None
     starter_code_md: Optional[str] = None
-    cheatsheet_md: Optional[str] = None             # per-problem Python syntax reference
+    cheatsheet_md: Optional[str] = None  # per-problem Python syntax reference
     skills: list[str]
     test_cases: list[TestCaseOut]  # visible cases only (sample + public)
     has_hidden_tests: bool
@@ -143,6 +171,7 @@ class ProblemDetail(BaseModel):
 
 class HintRequestPayload(BaseModel):
     """POST body for /problems/:id/hint. The current code lets the LLM tailor the hint."""
+
     code: str = ""
     language: Literal["python"] = "python"
     level: int = Field(default=1, ge=1, le=3)
@@ -152,9 +181,9 @@ class HintOut(BaseModel):
     hint_level: int
     hint_text_md: str
     source: Literal["llm", "heuristic"] = "llm"
-    cost_points: int = 0           # how many points this single hint cost (escalating)
-    total_hints_used: int = 0      # cumulative for this user+problem (incl. this one)
-    total_cost_points: int = 0     # cumulative penalty (incl. this one)
+    cost_points: int = 0  # how many points this single hint cost (escalating)
+    total_hints_used: int = 0  # cumulative for this user+problem (incl. this one)
+    total_cost_points: int = 0  # cumulative penalty (incl. this one)
 
 
 class AiSolutionOut(BaseModel):
@@ -166,6 +195,7 @@ class AiSolutionOut(BaseModel):
 
 # --- Interactive AI tutor (step-by-step chat) ---
 
+
 class TutorMessageIn(BaseModel):
     role: Literal["tutor", "student"]
     content: str
@@ -174,7 +204,7 @@ class TutorMessageIn(BaseModel):
 
 class TutorTurnRequest(BaseModel):
     history: list[TutorMessageIn] = []
-    student_message: Optional[str] = None     # null on the very first turn
+    student_message: Optional[str] = None  # null on the very first turn
 
 
 class TutorTurnResponse(BaseModel):
@@ -188,6 +218,7 @@ class TutorTurnResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Submissions
 # ---------------------------------------------------------------------------
+
 
 class SubmissionCreate(BaseModel):
     problem_id: int
@@ -229,11 +260,14 @@ class RunRequest(BaseModel):
 
 class RunResult(BaseModel):
     """Returned by POST /api/problems/:id/run* endpoints."""
+
     cases: list[TestCaseResultOut]
     passed_count: int
     total_count: int
     all_passed: bool
-    status: Literal["accepted", "wrong_answer", "runtime_error", "time_limit", "compile_error"]
+    status: Literal[
+        "accepted", "wrong_answer", "runtime_error", "time_limit", "compile_error"
+    ]
     # "sandbox" = plain code execution (no LLM, no severity, no penalty)
     # "llm"     = sandbox + LLM commentary (severity, code-quality, fail-cost)
     # "heuristic" = LLM was offline, fell back to no-AI grading
@@ -256,10 +290,11 @@ class NextProblemSuggestion(BaseModel):
 
 class ScoreAdjustment(BaseModel):
     """How the saved `score` was reduced from the raw LLM grade."""
-    raw_score: int                # the grader's verdict before any penalty
-    penalty_points: int           # total severity points from prior failed attempts (>=0)
-    prior_failed_attempts: int    # how many earlier failed submissions contributed
-    final_score: int              # raw_score - 2 * penalty_points, clamped to [50, 100]
+
+    raw_score: int  # the grader's verdict before any penalty
+    penalty_points: int  # total severity points from prior failed attempts (>=0)
+    prior_failed_attempts: int  # how many earlier failed submissions contributed
+    final_score: int  # raw_score - 2 * penalty_points, clamped to [50, 100]
 
 
 class SubmissionDetail(BaseModel):
@@ -267,7 +302,14 @@ class SubmissionDetail(BaseModel):
     problem_id: int
     problem_title: str
     language: str
-    status: Literal["pending", "accepted", "wrong_answer", "runtime_error", "time_limit", "compile_error"]
+    status: Literal[
+        "pending",
+        "accepted",
+        "wrong_answer",
+        "runtime_error",
+        "time_limit",
+        "compile_error",
+    ]
     score: int
     submitted_at: datetime
     total_runtime_ms: Optional[int] = None
@@ -277,8 +319,12 @@ class SubmissionDetail(BaseModel):
     feedback_bullets: list[FeedbackBullet] = []
     cases: list[TestCaseResultOut] = []
     skills_updated: list[SkillDelta] = []
-    next_problem: Optional[NextProblemSuggestion] = None      # kept for back-compat; mirrors next_problems[0]
-    next_problems: list[NextProblemSuggestion] = []           # up to 3 picks (LLM + heuristic fallback)
+    next_problem: Optional[NextProblemSuggestion] = (
+        None  # kept for back-compat; mirrors next_problems[0]
+    )
+    next_problems: list[NextProblemSuggestion] = (
+        []
+    )  # up to 3 picks (LLM + heuristic fallback)
     grader_source: Optional[Literal["llm", "heuristic"]] = None
     score_adjustment: Optional[ScoreAdjustment] = None
     # Optional — populated by GET /problems/:id/my-attempt and similar review endpoints
@@ -295,9 +341,17 @@ class HintRecord(BaseModel):
 
 class MySubmissionListItem(BaseModel):
     """Compact row in the EditorScreen 'Submissions' tab."""
+
     submission_id: int
     kind: Literal["run", "submit"]
-    status: Literal["pending", "accepted", "wrong_answer", "runtime_error", "time_limit", "compile_error"]
+    status: Literal[
+        "pending",
+        "accepted",
+        "wrong_answer",
+        "runtime_error",
+        "time_limit",
+        "compile_error",
+    ]
     score: int
     submitted_at: datetime
     language: str
@@ -308,6 +362,7 @@ class MySubmissionListItem(BaseModel):
 
 class MyAttemptOut(BaseModel):
     """Read-only view a student gets after they've solved a problem."""
+
     submission: SubmissionDetail
     hints: list[HintRecord]
     hint_total_cost: int
@@ -317,11 +372,13 @@ class MyAttemptOut(BaseModel):
 # Diagnostic
 # ---------------------------------------------------------------------------
 
+
 class DiagnosticItemSubmit(BaseModel):
     """One question the user just answered. The backend grades it (LLM if available)."""
+
     order_index: int
     skill_id: Optional[int] = None
-    skill_name: Optional[str] = None       # legacy single-skill hint (kept for label/UI)
+    skill_name: Optional[str] = None  # legacy single-skill hint (kept for label/UI)
     # Multiple skills each question exercises. Replaces the single-skill model:
     # every coding question naturally tests Algorithms + Edge Cases + Code Quality
     # + Time Complexity, etc. The grader returns per-skill sub-scores for each
@@ -332,7 +389,7 @@ class DiagnosticItemSubmit(BaseModel):
     type: Literal["mcq", "coding"] = "mcq"
     question: str = Field(min_length=1)
     user_answer: str = ""
-    correct_answer: Optional[str] = None   # canonical answer for MCQs; None for coding
+    correct_answer: Optional[str] = None  # canonical answer for MCQs; None for coding
     time_spent_seconds: int = Field(ge=0, default=0)
     hints_used: int = Field(ge=0, default=0)
 
@@ -345,7 +402,9 @@ class DiagnosticItemResultOut(BaseModel):
     order_index: int
     skill_name: Optional[str] = None
     tested_skills: list[str] = Field(default_factory=list)
-    per_skill_scores: dict[str, int] = Field(default_factory=dict)  # this item's score along each skill it tested
+    per_skill_scores: dict[str, int] = Field(
+        default_factory=dict
+    )  # this item's score along each skill it tested
     type: Literal["mcq", "coding"]
     question: str
     user_answer: str
@@ -358,6 +417,7 @@ class DiagnosticItemResultOut(BaseModel):
 
 class DiagnosticResultOut(BaseModel):
     """Returned by POST /diagnostic and GET /diagnostic/last."""
+
     diagnostic_attempt_id: int
     finished_at: Optional[datetime] = None
     overall_score: int
@@ -366,14 +426,17 @@ class DiagnosticResultOut(BaseModel):
     items: list[DiagnosticItemResultOut]
     skill_scores: list[UserSkillOut]
     weak_skills: list[str]
-    next_problem: Optional["NextProblemSuggestion"] = None    # back-compat; mirrors next_problems[0]
-    next_problems: list["NextProblemSuggestion"] = []         # up to 3 picks
+    next_problem: Optional["NextProblemSuggestion"] = (
+        None  # back-compat; mirrors next_problems[0]
+    )
+    next_problems: list["NextProblemSuggestion"] = []  # up to 3 picks
     user: UserOut
 
 
 # ---------------------------------------------------------------------------
 # Admin
 # ---------------------------------------------------------------------------
+
 
 class AdminUserRow(BaseModel):
     user_id: int
@@ -392,11 +455,14 @@ class AdminStats(BaseModel):
     problems: int
     skills: int
     submissions: int
-    submissions_last_7_days: list[dict[str, Any]]  # [{day: "2026-05-08", count: 12}, ...]
+    submissions_last_7_days: list[
+        dict[str, Any]
+    ]  # [{day: "2026-05-08", count: 12}, ...]
 
 
 class AdminUserCreate(BaseModel):
     """Admin-only invite/create. Used when self-registration is closed in prod."""
+
     full_name: str = Field(min_length=1, max_length=100)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
@@ -438,8 +504,9 @@ class AdminProblemRow(BaseModel):
 
 class AdminUserActivity(BaseModel):
     """One row in the admin per-user drilldown timeline."""
+
     when: datetime
-    event_type: str           # e.g. "submission.accepted", "login.success"
+    event_type: str  # e.g. "submission.accepted", "login.success"
     target_kind: Optional[str] = None
     target_id: Optional[str] = None
     detail: Optional[str] = None
@@ -448,6 +515,7 @@ class AdminUserActivity(BaseModel):
 
 class AdminUserDetail(BaseModel):
     """Per-user drilldown view (FR-Admin 5)."""
+
     user: AdminUserRow
     skill_scores: list[UserSkillOut]
     recent_submissions: list[MySubmissionListItem]
@@ -456,6 +524,7 @@ class AdminUserDetail(BaseModel):
 
 class AdminTestCaseUpsert(BaseModel):
     """Admin payload for create/update of a single test case."""
+
     name: Optional[str] = Field(default=None, max_length=100)
     visibility: Literal["sample", "public", "hidden"] = "hidden"
     input_blob: str = Field(min_length=1)

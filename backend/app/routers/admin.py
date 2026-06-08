@@ -34,15 +34,21 @@ from ..schemas import (
 )
 from ..security import hash_password
 
-router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
+router = APIRouter(
+    prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)]
+)
 
 
 # ---------------------------- Stats ----------------------------------------
 
+
 @router.get("/stats", response_model=AdminStats)
 def admin_stats(db: Session = Depends(get_db)) -> AdminStats:
     users = db.scalar(select(func.count()).select_from(User)) or 0
-    students = db.scalar(select(func.count()).select_from(User).where(User.role == "student")) or 0
+    students = (
+        db.scalar(select(func.count()).select_from(User).where(User.role == "student"))
+        or 0
+    )
     problems = db.scalar(select(func.count()).select_from(Problem)) or 0
     skills = db.scalar(select(func.count()).select_from(Skill)) or 0
     submissions = db.scalar(select(func.count()).select_from(Submission)) or 0
@@ -58,7 +64,9 @@ def admin_stats(db: Session = Depends(get_db)) -> AdminStats:
     series = []
     for i in range(7):
         d = seven_days_ago + timedelta(days=i)
-        series.append({"day": d.strftime("%a"), "count": counts_by_day.get(d.isoformat(), 0)})
+        series.append(
+            {"day": d.strftime("%a"), "count": counts_by_day.get(d.isoformat(), 0)}
+        )
 
     return AdminStats(
         users=users,
@@ -72,11 +80,19 @@ def admin_stats(db: Session = Depends(get_db)) -> AdminStats:
 
 # ---------------------------- Users ----------------------------------------
 
+
 @router.get("/users", response_model=list[AdminUserRow])
 def admin_users(db: Session = Depends(get_db)) -> list[AdminUserRow]:
     solved_sum = func.sum(case((ProblemStatus.status == "solved", 1), else_=0))
     avg_score = func.coalesce(
-        func.round(func.avg(case((ProblemStatus.best_score > 0, ProblemStatus.best_score), else_=None))), 0
+        func.round(
+            func.avg(
+                case(
+                    (ProblemStatus.best_score > 0, ProblemStatus.best_score), else_=None
+                )
+            )
+        ),
+        0,
     )
     rows = db.execute(
         select(
@@ -90,7 +106,14 @@ def admin_users(db: Session = Depends(get_db)) -> list[AdminUserRow]:
             User.created_at,
         )
         .join(ProblemStatus, ProblemStatus.user_id == User.user_id, isouter=True)
-        .group_by(User.user_id, User.full_name, User.email, User.role, User.last_login_at, User.created_at)
+        .group_by(
+            User.user_id,
+            User.full_name,
+            User.email,
+            User.role,
+            User.last_login_at,
+            User.created_at,
+        )
         .order_by(User.role.desc(), User.user_id)
     ).all()
     return [
@@ -109,7 +132,9 @@ def admin_users(db: Session = Depends(get_db)) -> list[AdminUserRow]:
 
 
 @router.post("/users", response_model=AdminUserRow, status_code=status.HTTP_201_CREATED)
-def admin_create_user(payload: AdminUserCreate, db: Session = Depends(get_db)) -> AdminUserRow:
+def admin_create_user(
+    payload: AdminUserCreate, db: Session = Depends(get_db)
+) -> AdminUserRow:
     """
     Admin-only user creation. Use this in prod where public /register is
     disabled (ALLOW_REGISTRATION=false). Useful for onboarding graders /
@@ -144,6 +169,7 @@ def admin_create_user(payload: AdminUserCreate, db: Session = Depends(get_db)) -
 
 # ---------------------------- Problems CRUD --------------------------------
 
+
 def _problem_to_row(db: Session, p: Problem) -> AdminProblemRow:
     rows = db.execute(
         select(Skill.skill_id, Skill.name)
@@ -173,10 +199,17 @@ def admin_list_problems(db: Session = Depends(get_db)) -> list[AdminProblemRow]:
     return [_problem_to_row(db, p) for p in problems]
 
 
-@router.post("/problems", response_model=AdminProblemRow, status_code=status.HTTP_201_CREATED)
-def admin_create_problem(payload: AdminProblemUpsert, db: Session = Depends(get_db)) -> AdminProblemRow:
+@router.post(
+    "/problems", response_model=AdminProblemRow, status_code=status.HTTP_201_CREATED
+)
+def admin_create_problem(
+    payload: AdminProblemUpsert, db: Session = Depends(get_db)
+) -> AdminProblemRow:
     if db.scalar(select(Problem).where(Problem.slug == payload.slug)):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A problem with this slug already exists.")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A problem with this slug already exists.",
+        )
     p = Problem(
         slug=payload.slug,
         title=payload.title,
@@ -202,11 +235,18 @@ def admin_update_problem(
 ) -> AdminProblemRow:
     p = db.get(Problem, problem_id)
     if p is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found"
+        )
 
     # If slug changes, ensure it's unique
-    if payload.slug != p.slug and db.scalar(select(Problem).where(Problem.slug == payload.slug)):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A problem with this slug already exists.")
+    if payload.slug != p.slug and db.scalar(
+        select(Problem).where(Problem.slug == payload.slug)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A problem with this slug already exists.",
+        )
 
     p.slug = payload.slug
     p.title = payload.title
@@ -228,7 +268,9 @@ def admin_update_problem(
 def admin_delete_problem(problem_id: int, db: Session = Depends(get_db)) -> None:
     p = db.get(Problem, problem_id)
     if p is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found"
+        )
     db.delete(p)
     db.commit()
 
@@ -246,18 +288,36 @@ def admin_user_detail(user_id: int, db: Session = Depends(get_db)) -> AdminUserD
     # Roster row (with solved + avg_score)
     solved_sum = func.sum(case((ProblemStatus.status == "solved", 1), else_=0))
     avg_score = func.coalesce(
-        func.round(func.avg(case((ProblemStatus.best_score > 0, ProblemStatus.best_score), else_=None))), 0
+        func.round(
+            func.avg(
+                case(
+                    (ProblemStatus.best_score > 0, ProblemStatus.best_score), else_=None
+                )
+            )
+        ),
+        0,
     )
     summary_row = db.execute(
         select(
-            User.user_id, User.full_name, User.email, User.role,
+            User.user_id,
+            User.full_name,
+            User.email,
+            User.role,
             solved_sum.label("solved"),
             avg_score.label("avg_score"),
-            User.last_login_at, User.created_at,
+            User.last_login_at,
+            User.created_at,
         )
         .join(ProblemStatus, ProblemStatus.user_id == User.user_id, isouter=True)
         .where(User.user_id == user_id)
-        .group_by(User.user_id, User.full_name, User.email, User.role, User.last_login_at, User.created_at)
+        .group_by(
+            User.user_id,
+            User.full_name,
+            User.email,
+            User.role,
+            User.last_login_at,
+            User.created_at,
+        )
     ).first()
     user_row = AdminUserRow(
         user_id=summary_row.user_id,
@@ -273,7 +333,11 @@ def admin_user_detail(user_id: int, db: Session = Depends(get_db)) -> AdminUserD
     # Per-skill scores
     skill_rows = db.execute(
         select(Skill.skill_id, Skill.name, UserSkill.score)
-        .join(UserSkill, (UserSkill.skill_id == Skill.skill_id) & (UserSkill.user_id == user_id), isouter=True)
+        .join(
+            UserSkill,
+            (UserSkill.skill_id == Skill.skill_id) & (UserSkill.user_id == user_id),
+            isouter=True,
+        )
         .order_by(Skill.display_order)
     ).all()
     skill_scores = [
@@ -345,12 +409,17 @@ def _test_case_to_row(tc: TestCase) -> AdminTestCaseRow:
 # Closes FR-Admin 2: admins can add/edit/delete test cases through the UI
 # instead of having to write raw SQL against the test_cases table.
 
+
 @router.get("/problems/{problem_id}/test-cases", response_model=list[AdminTestCaseRow])
-def admin_list_test_cases(problem_id: int, db: Session = Depends(get_db)) -> list[AdminTestCaseRow]:
+def admin_list_test_cases(
+    problem_id: int, db: Session = Depends(get_db)
+) -> list[AdminTestCaseRow]:
     if db.get(Problem, problem_id) is None:
         raise HTTPException(status_code=404, detail="Problem not found")
     rows = db.scalars(
-        select(TestCase).where(TestCase.problem_id == problem_id).order_by(TestCase.test_case_id)
+        select(TestCase)
+        .where(TestCase.problem_id == problem_id)
+        .order_by(TestCase.test_case_id)
     ).all()
     return [_test_case_to_row(t) for t in rows]
 
@@ -404,17 +473,25 @@ def admin_delete_test_case(test_case_id: int, db: Session = Depends(get_db)) -> 
 
 
 def _replace_problem_skills(db: Session, problem_id: int, skill_ids: list[int]) -> None:
-    db.execute(ProblemSkill.__table__.delete().where(ProblemSkill.problem_id == problem_id))
+    db.execute(
+        ProblemSkill.__table__.delete().where(ProblemSkill.problem_id == problem_id)
+    )
     for sid in skill_ids:
         db.add(ProblemSkill(problem_id=problem_id, skill_id=sid))
 
 
 # ---------------------------- Skills CRUD ----------------------------------
 
+
 def _skill_to_row(db: Session, s: Skill) -> AdminSkillRow:
-    count = db.scalar(
-        select(func.count()).select_from(ProblemSkill).where(ProblemSkill.skill_id == s.skill_id)
-    ) or 0
+    count = (
+        db.scalar(
+            select(func.count())
+            .select_from(ProblemSkill)
+            .where(ProblemSkill.skill_id == s.skill_id)
+        )
+        or 0
+    )
     return AdminSkillRow(
         skill_id=s.skill_id,
         name=s.name,
@@ -430,9 +507,17 @@ def admin_list_skills(db: Session = Depends(get_db)) -> list[AdminSkillRow]:
     return [_skill_to_row(db, s) for s in skills]
 
 
-@router.post("/skills", response_model=AdminSkillRow, status_code=status.HTTP_201_CREATED)
-def admin_create_skill(payload: AdminSkillUpsert, db: Session = Depends(get_db)) -> AdminSkillRow:
-    s = Skill(name=payload.name, description=payload.description, display_order=payload.display_order)
+@router.post(
+    "/skills", response_model=AdminSkillRow, status_code=status.HTTP_201_CREATED
+)
+def admin_create_skill(
+    payload: AdminSkillUpsert, db: Session = Depends(get_db)
+) -> AdminSkillRow:
+    s = Skill(
+        name=payload.name,
+        description=payload.description,
+        display_order=payload.display_order,
+    )
     db.add(s)
     db.commit()
     db.refresh(s)
@@ -440,10 +525,14 @@ def admin_create_skill(payload: AdminSkillUpsert, db: Session = Depends(get_db))
 
 
 @router.put("/skills/{skill_id}", response_model=AdminSkillRow)
-def admin_update_skill(skill_id: int, payload: AdminSkillUpsert, db: Session = Depends(get_db)) -> AdminSkillRow:
+def admin_update_skill(
+    skill_id: int, payload: AdminSkillUpsert, db: Session = Depends(get_db)
+) -> AdminSkillRow:
     s = db.get(Skill, skill_id)
     if s is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Skill not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Skill not found"
+        )
     s.name = payload.name
     s.description = payload.description
     s.display_order = payload.display_order
@@ -456,6 +545,8 @@ def admin_update_skill(skill_id: int, payload: AdminSkillUpsert, db: Session = D
 def admin_delete_skill(skill_id: int, db: Session = Depends(get_db)) -> None:
     s = db.get(Skill, skill_id)
     if s is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Skill not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Skill not found"
+        )
     db.delete(s)
     db.commit()

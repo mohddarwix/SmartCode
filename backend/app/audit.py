@@ -46,7 +46,9 @@ def record(
         row = AuditLog(
             user_id=user_id,
             event_type=event_type[:40],
-            target_kind=(target_kind or None) if target_kind is None else target_kind[:40],
+            target_kind=(
+                (target_kind or None) if target_kind is None else target_kind[:40]
+            ),
             target_id=(target_id or None) if target_id is None else str(target_id)[:60],
             detail=text or None,
             source_ip=ip,

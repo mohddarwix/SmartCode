@@ -47,7 +47,9 @@ def is_available() -> bool:
     return settings.llm_enabled
 
 
-def call_json(*, system: str, user: str, max_tokens: int | None = None) -> dict[str, Any]:
+def call_json(
+    *, system: str, user: str, max_tokens: int | None = None
+) -> dict[str, Any]:
     """Send a prompt and return parsed JSON.
 
     We ask Gemini to respond in `application/json` mode, which is enforced by
@@ -184,4 +186,6 @@ def _extract_first_json_object(text: str) -> dict[str, Any]:
                         break  # try the next opening brace
         start = text.find("{", start + 1)
 
-    raise LLMError(f"LLM did not return valid JSON. Raw text (first 200 chars): {text[:200]}")
+    raise LLMError(
+        f"LLM did not return valid JSON. Raw text (first 200 chars): {text[:200]}"
+    )

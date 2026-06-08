@@ -6,7 +6,15 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
-from .routers import admin, auth, diagnostic, problems, recommendations, skills, submissions
+from .routers import (
+    admin,
+    auth,
+    diagnostic,
+    problems,
+    recommendations,
+    skills,
+    submissions,
+)
 
 app = FastAPI(
     title="SmartCode API",
@@ -48,7 +56,11 @@ app.include_router(admin.router, prefix="/api")
 # Set FRONTEND_DIST to the absolute path of the Vite `dist/` folder.
 # Leave it empty in dev — Vite's dev server hosts the frontend on :5173.
 # ---------------------------------------------------------------------------
-_frontend_dist = Path(settings.frontend_dist).expanduser().resolve() if settings.frontend_dist else None
+_frontend_dist = (
+    Path(settings.frontend_dist).expanduser().resolve()
+    if settings.frontend_dist
+    else None
+)
 if _frontend_dist and _frontend_dist.is_dir():
     # Hashed bundles (JS/CSS/images) live under dist/assets — serve them as static.
     assets_dir = _frontend_dist / "assets"
@@ -73,5 +85,7 @@ if _frontend_dist and _frontend_dist.is_dir():
         # Otherwise hand back index.html so the React router can take over.
         index = _frontend_dist / "index.html"
         if not index.is_file():
-            raise HTTPException(status_code=500, detail="index.html missing from frontend build")
+            raise HTTPException(
+                status_code=500, detail="index.html missing from frontend build"
+            )
         return FileResponse(str(index), headers=_NO_STORE)

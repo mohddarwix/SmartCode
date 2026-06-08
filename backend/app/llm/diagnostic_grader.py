@@ -29,19 +29,19 @@ log = logging.getLogger("ai_tutor.llm.diagnostic")
 
 class DiagnosticItemInput(BaseModel):
     order_index: int
-    skill: str                              # primary skill (kept for labels)
-    tested_skills: list[str] = []           # all skills the item exercises; defaults to [skill]
+    skill: str  # primary skill (kept for labels)
+    tested_skills: list[str] = []  # all skills the item exercises; defaults to [skill]
     type: Literal["mcq", "coding"]
     question: str
     user_answer: str
-    correct_answer: str | None = None       # set for MCQs; None for coding
+    correct_answer: str | None = None  # set for MCQs; None for coding
 
 
 class DiagnosticItemResult(BaseModel):
     order_index: int
     is_correct: bool
-    score: int                              # 0-100 overall
-    per_skill_scores: dict[str, int] = {}   # for each tested_skill: 0-100
+    score: int  # 0-100 overall
+    per_skill_scores: dict[str, int] = {}  # for each tested_skill: 0-100
     answer_kind: Literal["code", "pseudo_english", "blank"] = "code"
     explanation_md: str
     correct_answer: str | None = None
@@ -49,10 +49,10 @@ class DiagnosticItemResult(BaseModel):
 
 class DiagnosticResult(BaseModel):
     items: list[DiagnosticItemResult]
-    skill_scores: dict[str, int]            # skill_name -> 0..100 (averaged across items)
-    overall_score: int                      # 0..100
+    skill_scores: dict[str, int]  # skill_name -> 0..100 (averaged across items)
+    overall_score: int  # 0..100
     summary_md: str
-    weak_skills: list[str]                  # 2-3 weakest skills, sorted weakest-first
+    weak_skills: list[str]  # 2-3 weakest skills, sorted weakest-first
     source: Literal["llm", "heuristic"]
 
 
@@ -123,11 +123,14 @@ def grade_diagnostic(items: list[DiagnosticItemInput]) -> DiagnosticResult:
         try:
             return _grade_with_llm(items)
         except Exception as exc:  # noqa: BLE001 - we want to swallow everything here
-            log.warning("LLM diagnostic grading failed, falling back to heuristic: %s", exc)
+            log.warning(
+                "LLM diagnostic grading failed, falling back to heuristic: %s", exc
+            )
     return _grade_with_heuristic(items)
 
 
 # --------------------------- LLM path ---------------------------
+
 
 def _grade_with_llm(items: list[DiagnosticItemInput]) -> DiagnosticResult:
     user_text = _build_user_prompt(items)
@@ -241,7 +244,9 @@ def _coerce_result(
         raw.get("overall_score"),
         0,
         100,
-        default=round(sum(r.score for r in items_out) / len(items_out)) if items_out else 0,
+        default=(
+            round(sum(r.score for r in items_out) / len(items_out)) if items_out else 0
+        ),
     )
     summary = str(raw.get("summary_md") or "")
     weak_skills_raw = raw.get("weak_skills") or []
@@ -261,17 +266,24 @@ def _coerce_result(
 
 # --------------------------- Heuristic fallback ---------------------------
 
+
 def _grade_with_heuristic(items: list[DiagnosticItemInput]) -> DiagnosticResult:
     """No-LLM grader. Crude but never explodes."""
     items_out: list[DiagnosticItemResult] = []
     for item in items:
         skills = item.tested_skills or [item.skill]
         if item.type == "mcq":
-            is_correct = (item.user_answer or "").strip() == (item.correct_answer or "").strip()
+            is_correct = (item.user_answer or "").strip() == (
+                item.correct_answer or ""
+            ).strip()
             score = 100 if is_correct else 0
             per_skill = {s: score for s in skills}
             answer_kind = "blank" if not (item.user_answer or "").strip() else "code"
-            explanation = "Correct." if is_correct else f"The correct answer is **{item.correct_answer}**."
+            explanation = (
+                "Correct."
+                if is_correct
+                else f"The correct answer is **{item.correct_answer}**."
+            )
         else:
             ans = (item.user_answer or "").strip()
             looks_pseudo = bool(ans) and "def " not in ans and "return" not in ans
@@ -317,7 +329,9 @@ def _grade_with_heuristic(items: list[DiagnosticItemInput]) -> DiagnosticResult:
         skill: round(sum(scores) / len(scores)) for skill, scores in bucket.items()
     }
 
-    overall = round(sum(r.score for r in items_out) / len(items_out)) if items_out else 0
+    overall = (
+        round(sum(r.score for r in items_out) / len(items_out)) if items_out else 0
+    )
     weak = _compute_weak_skills(skill_scores)
     return DiagnosticResult(
         items=items_out,
@@ -333,6 +347,7 @@ def _grade_with_heuristic(items: list[DiagnosticItemInput]) -> DiagnosticResult:
 
 
 # --------------------------- small helpers ---------------------------
+
 
 def _clamp_int(value: Any, lo: int, hi: int, *, default: int = 0) -> int:
     try:
@@ -353,7 +368,9 @@ def _default_item_result(item: DiagnosticItemInput) -> DiagnosticItemResult:
 
 
 def _compute_weak_skills(skill_scores: dict[str, int]) -> list[str]:
-    return [skill for skill, _ in sorted(skill_scores.items(), key=lambda kv: kv[1])][:3]
+    return [skill for skill, _ in sorted(skill_scores.items(), key=lambda kv: kv[1])][
+        :3
+    ]
 
 
 __all__ = [

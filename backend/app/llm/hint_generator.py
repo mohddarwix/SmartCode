@@ -34,9 +34,9 @@ class HintInput(BaseModel):
     difficulty: Literal["easy", "medium", "hard"]
     statement_md: str
     constraints_md: str | None
-    sample_cases: list[dict]   # [{name, input_blob, expected_blob}]
+    sample_cases: list[dict]  # [{name, input_blob, expected_blob}]
     user_code: str
-    level: int                  # 1-based; >=3 caps to "level 3" content
+    level: int  # 1-based; >=3 caps to "level 3" content
 
 
 class HintResult(BaseModel):
@@ -89,6 +89,7 @@ def generate_hint(inp: HintInput) -> HintResult:
 
 
 # --------------------------- LLM path ---------------------------
+
 
 def _generate_with_llm(inp: HintInput, level: int) -> HintResult:
     parts = [

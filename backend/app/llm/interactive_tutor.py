@@ -37,12 +37,12 @@ class TutorInput(BaseModel):
     sample_input: Optional[str] = None
     sample_output: Optional[str] = None
     history: list[TutorMessage] = []
-    student_message: Optional[str] = None   # None on the very first turn
+    student_message: Optional[str] = None  # None on the very first turn
 
 
 class TutorTurn(BaseModel):
-    tutor_response: str                     # markdown OK; ends with a check question unless is_complete
-    step_index: int                         # 1..total_steps
+    tutor_response: str  # markdown OK; ends with a check question unless is_complete
+    step_index: int  # 1..total_steps
     total_steps: int = 6
     is_complete: bool = False
     source: Literal["llm", "heuristic"] = "llm"
@@ -91,12 +91,17 @@ def teach(payload: TutorInput) -> TutorTurn:
                 "The AI tutor is offline right now (the language model is unreachable). "
                 "Try again in a minute, or use the cheatsheet drawer on the left for syntax help."
             ),
-            step_index=1, total_steps=_TOTAL_STEPS, is_complete=False, source="heuristic",
+            step_index=1,
+            total_steps=_TOTAL_STEPS,
+            is_complete=False,
+            source="heuristic",
         )
 
     user_text = _build_user_prompt(payload)
     try:
-        raw = llm_client.call_json(system=_SYSTEM_PROMPT, user=user_text, max_tokens=900)
+        raw = llm_client.call_json(
+            system=_SYSTEM_PROMPT, user=user_text, max_tokens=900
+        )
     except Exception as exc:  # noqa: BLE001
         log.warning("Tutor turn LLM call failed: %s", exc)
         return TutorTurn(
@@ -105,7 +110,9 @@ def teach(payload: TutorInput) -> TutorTurn:
                 "if it keeps failing, the language model may be rate-limited."
             ),
             step_index=_last_step_index(payload.history),
-            total_steps=_TOTAL_STEPS, is_complete=False, source="heuristic",
+            total_steps=_TOTAL_STEPS,
+            is_complete=False,
+            source="heuristic",
         )
 
     response_text = str(raw.get("tutor_response") or "").strip()
@@ -114,7 +121,9 @@ def teach(payload: TutorInput) -> TutorTurn:
         return TutorTurn(
             tutor_response="(The tutor gave an empty response. Try sending again.)",
             step_index=_last_step_index(payload.history),
-            total_steps=_TOTAL_STEPS, is_complete=False, source="heuristic",
+            total_steps=_TOTAL_STEPS,
+            is_complete=False,
+            source="heuristic",
         )
 
     try:
@@ -150,7 +159,9 @@ def _build_user_prompt(payload: TutorInput) -> str:
         )
 
     if not payload.history:
-        history_text = "(empty - this is the very first turn; greet the student and begin step 1)"
+        history_text = (
+            "(empty - this is the very first turn; greet the student and begin step 1)"
+        )
     else:
         lines = []
         for m in payload.history:

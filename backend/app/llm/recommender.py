@@ -43,7 +43,7 @@ class Pick(BaseModel):
 
 
 class RecommendationSet(BaseModel):
-    picks: list[Pick]                  # 1..3 items; first is the strongest pick
+    picks: list[Pick]  # 1..3 items; first is the strongest pick
     source: Literal["llm", "heuristic"]
 
 
@@ -97,10 +97,13 @@ def recommend_problem(
 
 # --------------------------- LLM path ---------------------------
 
+
 def _recommend_with_llm(
     skills: list[SkillScore], candidates: list[CatalogueProblem]
 ) -> RecommendationSet:
-    skill_block = "\n".join(f"- {s.name}: {s.score}/100" for s in skills) or "(no scores yet)"
+    skill_block = (
+        "\n".join(f"- {s.name}: {s.score}/100" for s in skills) or "(no scores yet)"
+    )
     catalog_lines = []
     for p in candidates:
         catalog_lines.append(
@@ -132,11 +135,19 @@ def _recommend_with_llm(
         if pid not in valid_ids or pid in seen:
             continue
         seen.add(pid)
-        picks.append(Pick(
-            problem_id=pid,
-            reason_md=str(pr.get("reason_md") or "Recommended based on your skill profile."),
-            targeted_skills=[str(s) for s in (pr.get("targeted_skills") or []) if isinstance(s, str)],
-        ))
+        picks.append(
+            Pick(
+                problem_id=pid,
+                reason_md=str(
+                    pr.get("reason_md") or "Recommended based on your skill profile."
+                ),
+                targeted_skills=[
+                    str(s)
+                    for s in (pr.get("targeted_skills") or [])
+                    if isinstance(s, str)
+                ],
+            )
+        )
         if len(picks) >= _TARGET_PICKS:
             break
 
@@ -160,6 +171,7 @@ def _recommend_with_llm(
 
 # --------------------------- Heuristic fallback ---------------------------
 
+
 def _recommend_with_heuristic(
     skills: list[SkillScore], candidates: list[CatalogueProblem]
 ) -> RecommendationSet:
@@ -173,23 +185,27 @@ def _recommend_with_heuristic(
 
     candidates_sorted = sorted(
         candidates,
-        key=lambda p: (-overlap(p), difficulty_rank.get(p.difficulty, 99), p.problem_id),
+        key=lambda p: (
+            -overlap(p),
+            difficulty_rank.get(p.difficulty, 99),
+            p.problem_id,
+        ),
     )
 
     picks: list[Pick] = []
     for c in candidates_sorted[:_TARGET_PICKS]:
         targeted = [s for s in c.skills if s in weak_names] or c.skills[:1]
         if targeted:
-            reason = (
-                f"Targets {', '.join(targeted)} - where your profile shows the most room to grow."
-            )
+            reason = f"Targets {', '.join(targeted)} - where your profile shows the most room to grow."
         else:
             reason = "Suggested as a good next step based on your current level."
-        picks.append(Pick(
-            problem_id=c.problem_id,
-            reason_md=reason,
-            targeted_skills=targeted,
-        ))
+        picks.append(
+            Pick(
+                problem_id=c.problem_id,
+                reason_md=reason,
+                targeted_skills=targeted,
+            )
+        )
 
     return RecommendationSet(picks=picks, source="heuristic")
 
