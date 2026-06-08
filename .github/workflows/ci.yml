@@ -42,6 +42,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
 
+      - name: Install MySQL client
+        run: sudo apt-get install -y mysql-client
+
       - name: Seed database
         run: |
           mysql -h 127.0.0.1 -P 3307 -u root -ptestpass ai_tutor_system < database/schema.sql
