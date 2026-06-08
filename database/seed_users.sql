@@ -71,7 +71,7 @@ INSERT INTO diagnostic_items (diagnostic_attempt_id, skill_id, problem_id, order
 (1, 3, NULL, 3,   0, 60, 0),
 (1, 6, NULL, 4,   0, 55, 0),
 (1, 4, NULL, 5, 100, 25, 0),
-(1, 5, NULL, 6, 100, 40, 0),
+(1, NULL, NULL, 6, 100, 40, 0),
 (1, 1, 1,    7,  80, 420, 1),
 (1, 3, NULL, 8,  60, 360, 1);
 
