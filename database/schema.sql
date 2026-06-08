@@ -47,6 +47,7 @@ CREATE TABLE problems (
     statement_md      TEXT NOT NULL,
     constraints_md    TEXT,
     starter_code_md   TEXT,
+    cheatsheet_md     TEXT NULL DEFAULT NULL,
     is_active         BOOLEAN NOT NULL DEFAULT TRUE,
     created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_problems_active (is_active),
